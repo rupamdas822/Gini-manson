@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Customers | your brand's Cosmetics</title>
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='85' font-size='85' text-anchor='middle' fill='%238B4513'>💄</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f0eb; overflow-x: hidden; }
+        /* Sidebar - exact match with dashboard */
+        .sidebar {
+            position: fixed; left: 0; top: 0; width: 260px; height: 100%;
+            background: linear-gradient(135deg, #2c1810 0%, #1a0f0a 100%);
+            color: white; transition: 0.3s; z-index: 100; overflow-y: auto;
+        }
+        .sidebar-header { padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h3 { font-size: 1.2rem; letter-spacing: 2px; color: #D4AF37; }
+        .sidebar-header p { font-size: 0.7rem; opacity: 0.7; margin-top: 5px; }
+        .sidebar-menu { padding: 20px 0; }
+        .menu-item {
+            padding: 12px 25px; display: flex; align-items: center; gap: 12px;
+            color: rgba(255,255,255,0.8); text-decoration: none; transition: 0.3s;
+            border-left: 3px solid transparent;
+        }
+        .menu-item:hover, .menu-item.active { background: rgba(212,175,55,0.1); border-left-color: #D4AF37; color: #D4AF37; }
+        .main-content { margin-left: 260px; padding: 20px; transition: 0.3s; }
+        .top-bar {
+            background: white; border-radius: 15px; padding: 15px 25px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .role-badge { background: #D4AF37; color: #2c1810; padding: 5px 12px; border-radius: 30px; font-size: 0.7rem; font-weight: 600; }
+        .logout-btn { background: #8B4513; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .logout-btn:hover { background: #5C2E0B; transform: translateY(-2px); }
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px; margin-bottom: 25px;
+        }
+        .stat-card {
+            background: white; border-radius: 15px; padding: 15px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-number { font-size: 1.5rem; font-weight: 700; color: #2c1810; }
+        .stat-icon { width: 45px; height: 45px; background: #f5e6d3; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #8B4513; }
+        .filter-bar {
+            background: white; border-radius: 15px; padding: 15px; margin-bottom: 20px;
+            display: flex; gap: 15px; flex-wrap: wrap; align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .filter-select { padding: 10px 15px; border: 2px solid #e8ddd0; border-radius: 10px; background: white; cursor: pointer; }
+        .search-box { flex: 1; display: flex; }
+        .search-box input { flex: 1; padding: 10px; border: 2px solid #e8ddd0; border-radius: 10px 0 0 10px; }
+        .search-box button { padding: 10px 20px; background: #8B4513; color: white; border: none; border-radius: 0 10px 10px 0; cursor: pointer; }
+        .btn-primary { background: #8B4513; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.3s; }
+        .btn-primary:hover { background: #5C2E0B; transform: translateY(-2px); }
+        .btn-secondary { background: #D4AF37; color: #2c1810; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; transition: 0.3s; }
+        .btn-secondary:hover { transform: translateY(-2px); }
+        .btn-danger { background: #c62828; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+        .btn-whatsapp { background: #25d366; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .btn-whatsapp:hover { background: #128c7e; }
+        .customers-container { background: white; border-radius: 15px; padding: 20px; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .customers-table { width: 100%; border-collapse: collapse; }
+        .customers-table th, .customers-table td { padding: 12px; text-align: left; border-bottom: 1px solid #f0e4d8; }
+        .customers-table th { color: #8B7355; font-weight: 500; font-size: 0.75rem; text-transform: uppercase; }
+        .customers-table tr:hover { background: #faf6f0; }
+        .modal {
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index:1000;
+            justify-content: center; align-items: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white; border-radius: 20px; max-width: 550px; width: 90%;
+            padding: 25px; animation: modalFadeIn 0.3s ease;
+        }
+        @keyframes modalFadeIn { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0e4d8; }
+        .modal-header h3 { color: #8B4513; }
+        .modal-close { font-size: 1.5rem; cursor: pointer; color: #8B7355; transition: 0.3s; }
+        .modal-close:hover { color: #c62828; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #2c1810; }
+        .form-group input { width: 100%; padding: 10px; border: 2px solid #e8ddd0; border-radius: 10px; }
+        .form-group input:focus { outline: none; border-color: #D4AF37; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .phone-preview { font-size: 0.7rem; color: #8B7355; margin-top: 5px; }
+        .menu-toggle { display: none; position: fixed; top: 15px; left: 15px; background: #8B4513; color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; z-index: 101; }
+        @media (max-width: 768px) {
+            .sidebar { left: -260px; }
+            .sidebar.active { left: 0; }
+            .main-content { margin-left: 0; }
+            .menu-toggle { display: block; }
+            .top-bar { margin-top: 55px; }
+            .form-row { grid-template-columns: 1fr; }
+            .filter-bar { flex-direction: column; }
+        }
+        .loading { text-align: center; padding: 40px; }
+        .loading-spinner { width: 40px; height: 40px; border: 3px solid #f0e4d8; border-top-color: #8B4513; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .alert { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 10px; color: white; z-index: 1100; animation: slideIn 0.3s; }
+        .alert-success { background: #2e7d32; }
+        .alert-error { background: #c62828; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header"><h3>JOY GINI<br>MANSON'S</h3><p>Premium Cosmetics</p></div>
+        <div class="sidebar-menu">
+            <a href="admin-dashboard.html" class="menu-item"><i class="fas fa-chart-line"></i> Dashboard</a>
+            <a href="admin-products.html" class="menu-item"><i class="fas fa-box"></i> Products</a>
+            <a href="admin-orders.html" class="menu-item"><i class="fas fa-shopping-cart"></i> Orders</a>
+            <a href="admin-customers.html" class="menu-item active"><i class="fas fa-users"></i> Customers</a>
+            <a href="admin-employees.html" class="menu-item"><i class="fas fa-id-badge"></i> Employees</a>
+            <a href="admin-stock.html" class="menu-item"><i class="fas fa-warehouse"></i> Stock</a>
+            <a href="admin-billing.html" class="menu-item"><i class="fas fa-receipt"></i> Billing</a>
+            <a href="admin-reports.html" class="menu-item"><i class="fas fa-file-alt"></i> Reports</a>
+            <a href="admin-settings.html" class="menu-item"><i class="fas fa-cog"></i> Settings</a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="top-bar">
+            <div><h2><i class="fas fa-users"></i> Customer Management</h2><p style="font-size:0.75rem; color:#8B7355; margin-top:5px;">Manage customers | Birthday & Anniversary WhatsApp Reminders</p></div>
+            <div class="user-info">
+                <span id="userName">Admin</span>
+                <span class="role-badge" id="userRole">Admin</span>
+                <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid"><div class="loading"><div class="loading-spinner"></div><p>Loading stats...</p></div></div>
+
+        <div class="filter-bar">
+            <button class="btn-primary" id="addCustomerBtn"><i class="fas fa-plus"></i> Add Customer</button>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search by name, phone or email...">
+                <button id="searchBtn"><i class="fas fa-search"></i></button>
+            </div>
+            <select id="filterSelect" class="filter-select">
+                <option value="all">All Customers</option>
+                <option value="birthday">Birthday Today</option>
+                <option value="anniversary">Anniversary Today</option>
+                <option value="this_month">Birthday This Month</option>
+            </select>
+            <button id="refreshBtn" class="btn-secondary"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+
+        <div class="customers-container">
+            <div id="customersTable"><div class="loading"><div class="loading-spinner"></div><p>Loading customers...</p></div></div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Customer Modal -->
+    <div class="modal" id="customerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle"><i class="fas fa-user-plus"></i> Add Customer</h3>
+                <span class="modal-close" id="modalClose">&times;</span>
+            </div>
+            <form id="customerForm">
+                <input type="hidden" id="customerId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" id="custName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number *</label>
+                        <input type="tel" id="custPhone" placeholder="9876543210" required>
+                        <div class="phone-preview">+91 will be added automatically</div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="custEmail">
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <input type="text" id="custAddress">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Birth Date</label>
+                        <input type="date" id="custBirthDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Anniversary Date</label>
+                        <input type="date" id="custAnniversary">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;"><i class="fas fa-save"></i> Save Customer</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const SUPABASE_URL = 'https://sbnkxplyjifishrocjge.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNibmt4cGx5amlmaXNocm9jamdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MDA5OTUsImV4cCI6MjA5MjM3Njk5NX0.dVASIJbH19EIEy6oenyjwKb2sJVjQ3YPZir6iNZCKGk';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            let allCustomers = [];
+            let currentFilter = 'all';
+            let currentSearch = '';
+            let storeSettings = {};
+            
+            function showAlert(msg, type) {
+                const el = document.createElement('div');
+                el.className = `alert alert-${type}`;
+                el.innerHTML = `<i class="fas fa-${type==='success'?'check-circle':'exclamation-circle'}"></i> ${msg}`;
+                document.body.appendChild(el);
+                setTimeout(()=>el.remove(),3000);
+            }
+            
+            function checkAuth() {
+                const user = localStorage.getItem('adminUser');
+                if (!user) { window.location.href='admin-login.html'; return false; }
+                try {
+                    const u = JSON.parse(user);
+                    if (!u.isLoggedIn) { window.location.href='admin-login.html'; return false; }
+                    document.getElementById('userName').innerText = u.full_name || u.email.split('@')[0];
+                    document.getElementById('userRole').innerText = u.role === 'admin' ? 'Administrator' : 'Staff';
+                    return true;
+                } catch(e){ window.location.href='admin-login.html'; return false; }
+            }
+            
+            function formatPhone(phone) {
+                let cleaned = phone.replace(/[^0-9]/g, '');
+                if (cleaned.startsWith('91') && cleaned.length === 12) return '+' + cleaned;
+                if (cleaned.length === 10) return '+91' + cleaned;
+                return phone;
+            }
+            
+            async function loadStoreSettings() {
+                const { data, error } = await supabase.from('store_settings').select('*').single();
+                if (data) storeSettings = data;
+                else storeSettings = { store_name: 'your brand\'s Cosmetics', store_phone: '+91 9876543210', store_address: 'Piyali Bazar, Baruipur' };
+            }
+            
+            function getMessage(type, customerName) {
+                const templates = {
+                    birthday: storeSettings.birthday_message || `🎉 *Happy Birthday, {name}!* 🎂\n\nWishing you a day filled with joy and beauty! As a special gift, enjoy *extra 10% discount* on your next purchase at {store_name}.\n\n✨ Use code: BDAY10\n\nVisit us at: {address}\n📞 Call: {phone}\n\n*Offer valid for 7 days only!*`,
+                    anniversary: storeSettings.anniversary_message || `💝 *Happy Anniversary, {name}!* 💐\n\nCongratulations on your special day! Enjoy *15% discount* on your next purchase as our gift to you.\n\n✨ Use code: LOVE15\n\nVisit {store_name}\n📍 {address}\n\n*Wishing you many more beautiful years together!*`,
+                    general: storeSettings.general_message || `🌸 *Hello {name}!* 🌸\n\nThank you for being a valued customer of {store_name}.\n\nWe have exciting new arrivals and special offers waiting for you!\n\nVisit us today:\n📍 {address}\n📞 Call: {phone}\n\n*Happy Shopping!* 💄`
+                };
+                let msg = templates[type] || templates.general;
+                return msg.replace(/{name}/g, customerName)
+                          .replace(/{store_name}/g, storeSettings.store_name || 'your brand\'s Cosmetics')
+                          .replace(/{phone}/g, storeSettings.store_phone || '+91 9876543210')
+                          .replace(/{address}/g, storeSettings.store_address || 'Piyali Bazar, Baruipur, South 24 Parganas');
+            }
+            
+            function openWhatsApp(phone, message) {
+                let p = phone.replace(/[^0-9]/g, '');
+                if (p.length === 10) p = '91' + p;
+                if (!p.startsWith('91')) p = '91' + p;
+                window.open(`https://wa.me/${p}?text=${encodeURIComponent(message)}`, '_blank');
+            }
+            
+            window.sendWhatsAppMessage = function(customerId, type) {
+                const c = allCustomers.find(c => c.id == customerId);
+                if (!c || !c.phone) { showAlert('No phone number', 'error'); return; }
+                const msg = getMessage(type, c.name);
+                openWhatsApp(c.phone, msg);
+            };
+            
+            async function loadCustomers() {
+                const { data, error } = await supabase.from('customers').select('*').order('name');
+                if (error) { showAlert('Failed to load customers', 'error'); return; }
+                allCustomers = data || [];
+                updateStats();
+                applyFilters();
+            }
+            
+            function updateStats() {
+                const total = allCustomers.length;
+                const today = new Date().toISOString().split('T')[0];
+                const currentMonth = new Date().toISOString().slice(0,7);
+                const birthdayToday = allCustomers.filter(c => c.birth_date === today).length;
+                const anniversaryToday = allCustomers.filter(c => c.anniversary_date === today).length;
+                const birthdayThisMonth = allCustomers.filter(c => c.birth_date && c.birth_date.startsWith(currentMonth)).length;
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="stat-card" onclick="document.getElementById('filterSelect').value='all'; document.getElementById('filterSelect').dispatchEvent(new Event('change'));">
+                        <div><h4>Total Customers</h4><div class="stat-number">${total}</div></div>
+                        <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    </div>
+                    <div class="stat-card" onclick="document.getElementById('filterSelect').value='birthday'; document.getElementById('filterSelect').dispatchEvent(new Event('change'));">
+                        <div><h4>Birthday Today</h4><div class="stat-number" style="color:#D4AF37;">${birthdayToday}</div></div>
+                        <div class="stat-icon"><i class="fas fa-birthday-cake"></i></div>
+                    </div>
+                    <div class="stat-card" onclick="document.getElementById('filterSelect').value='anniversary'; document.getElementById('filterSelect').dispatchEvent(new Event('change'));">
+                        <div><h4>Anniversary Today</h4><div class="stat-number" style="color:#D4AF37;">${anniversaryToday}</div></div>
+                        <div class="stat-icon"><i class="fas fa-heart"></i></div>
+                    </div>
+                    <div class="stat-card" onclick="document.getElementById('filterSelect').value='this_month'; document.getElementById('filterSelect').dispatchEvent(new Event('change'));">
+                        <div><h4>Birthday This Month</h4><div class="stat-number" style="color:#D4AF37;">${birthdayThisMonth}</div></div>
+                        <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+                    </div>
+                `;
+            }
+            
+            function applyFilters() {
+                let filtered = [...allCustomers];
+                if (currentSearch) {
+                    filtered = filtered.filter(c => 
+                        c.name.toLowerCase().includes(currentSearch) ||
+                        (c.phone && c.phone.includes(currentSearch)) ||
+                        (c.email && c.email.toLowerCase().includes(currentSearch))
+                    );
+                }
+                const today = new Date().toISOString().split('T')[0];
+                const currentMonth = new Date().toISOString().slice(0,7);
+                if (currentFilter === 'birthday') filtered = filtered.filter(c => c.birth_date === today);
+                else if (currentFilter === 'anniversary') filtered = filtered.filter(c => c.anniversary_date === today);
+                else if (currentFilter === 'this_month') filtered = filtered.filter(c => c.birth_date && c.birth_date.startsWith(currentMonth));
+                renderCustomers(filtered);
+            }
+            
+            function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':m==='>'?'&gt;':m); }
+            
+            function renderCustomers(customers) {
+                const container = document.getElementById('customersTable');
+                if (!customers.length) { container.innerHTML = '<div class="loading"><p>No customers found</p></div>'; return; }
+                container.innerHTML = `
+                    <table class="customers-table">
+                        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Address</th><th>Birth Date</th><th>Anniversary</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            ${customers.map(c => `
+                                <tr>
+                                    <td><strong>${escapeHtml(c.name)}</strong><br><small>Since: ${c.created_at ? new Date(c.created_at).toLocaleDateString() : '-'}</small></td>
+                                    <td>${c.phone || '-'}<button class="btn-whatsapp" style="padding:2px 8px; font-size:0.6rem; margin-left:5px;" onclick="sendWhatsAppMessage(${c.id}, 'general')"><i class="fab fa-whatsapp"></i></button></td>
+                                    <td>${c.email || '-'}</td>
+                                    <td>${c.address || '-'}</td>
+                                    <td>${c.birth_date ? new Date(c.birth_date).toLocaleDateString() : '-'} ${c.birth_date ? `<button class="btn-secondary" style="padding:2px 8px; font-size:0.6rem; margin-left:5px;" onclick="sendWhatsAppMessage(${c.id}, 'birthday')"><i class="fab fa-whatsapp"></i> Wish</button>` : ''}</td>
+                                    <td>${c.anniversary_date ? new Date(c.anniversary_date).toLocaleDateString() : '-'} ${c.anniversary_date ? `<button class="btn-secondary" style="padding:2px 8px; font-size:0.6rem; margin-left:5px;" onclick="sendWhatsAppMessage(${c.id}, 'anniversary')"><i class="fab fa-whatsapp"></i> Wish</button>` : ''}</td>
+                                    <td>
+                                        <button class="btn-primary" style="padding:5px 10px; margin:2px;" onclick="editCustomer(${c.id})"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-danger" style="padding:5px 10px; margin:2px;" onclick="deleteCustomer(${c.id})"><i class="fas fa-trash"></i></button>
+                                        <button class="btn-whatsapp" style="padding:5px 10px; margin:2px;" onclick="sendWhatsAppMessage(${c.id}, 'general')"><i class="fab fa-whatsapp"></i></button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+            
+            window.editCustomer = async function(id) {
+                const c = allCustomers.find(c => c.id == id);
+                if (!c) return;
+                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-edit"></i> Edit Customer';
+                document.getElementById('customerId').value = c.id;
+                document.getElementById('custName').value = c.name;
+                let phone = c.phone || '';
+                phone = phone.replace('+91', '');
+                document.getElementById('custPhone').value = phone;
+                document.getElementById('custEmail').value = c.email || '';
+                document.getElementById('custAddress').value = c.address || '';
+                document.getElementById('custBirthDate').value = c.birth_date || '';
+                document.getElementById('custAnniversary').value = c.anniversary_date || '';
+                document.getElementById('customerModal').classList.add('active');
+            };
+            
+            window.deleteCustomer = async function(id) {
+                if (!confirm('⚠️ Delete this customer permanently?\nThis will also remove all orders and order items associated with this customer. This action cannot be undone.')) return;
+                try {
+                    const { data: orders, error: oe } = await supabase.from('orders').select('id').eq('customer_id', id);
+                    if (oe) throw oe;
+                    if (orders && orders.length) {
+                        const orderIds = orders.map(o => o.id);
+                        const { error: ierr } = await supabase.from('order_items').delete().in('order_id', orderIds);
+                        if (ierr) throw ierr;
+                        const { error: derr } = await supabase.from('orders').delete().in('id', orderIds);
+                        if (derr) throw derr;
+                    }
+                    const { error: cerr } = await supabase.from('customers').delete().eq('id', id);
+                    if (cerr) throw cerr;
+                    showAlert('Customer and all associated data deleted', 'success');
+                    loadCustomers();
+                } catch(err) { showAlert('Delete failed: ' + err.message, 'error'); }
+            };
+            
+            document.getElementById('addCustomerBtn').onclick = () => {
+                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-plus"></i> Add Customer';
+                document.getElementById('customerForm').reset();
+                document.getElementById('customerId').value = '';
+                document.getElementById('customerModal').classList.add('active');
+            };
+            document.getElementById('customerForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('customerId').value;
+                let phone = document.getElementById('custPhone').value;
+                if (phone) phone = formatPhone(phone);
+                const data = {
+                    name: document.getElementById('custName').value,
+                    phone: phone || null,
+                    email: document.getElementById('custEmail').value || null,
+                    address: document.getElementById('custAddress').value || null,
+                    birth_date: document.getElementById('custBirthDate').value || null,
+                    anniversary_date: document.getElementById('custAnniversary').value || null
+                };
+                let result;
+                if (id) result = await supabase.from('customers').update(data).eq('id', id);
+                else result = await supabase.from('customers').insert(data);
+                if (result.error) showAlert('Failed: ' + result.error.message, 'error');
+                else { showAlert(id ? 'Customer updated!' : 'Customer added!', 'success'); document.getElementById('customerModal').classList.remove('active'); loadCustomers(); }
+            };
+            
+            document.getElementById('searchBtn').onclick = () => { currentSearch = document.getElementById('searchInput').value.toLowerCase(); applyFilters(); };
+            document.getElementById('filterSelect').onchange = (e) => { currentFilter = e.target.value; applyFilters(); };
+            document.getElementById('refreshBtn').onclick = () => loadCustomers();
+            document.getElementById('modalClose').onclick = () => document.getElementById('customerModal').classList.remove('active');
+            document.getElementById('logoutBtn').onclick = () => { localStorage.removeItem('adminUser'); window.location.href='admin-login.html'; };
+            document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('active');
+            
+            async function init() {
+                if (!checkAuth()) return;
+                await loadStoreSettings();
+                await loadCustomers();
+            }
+            init();
+        })();
+    </script>
+</body>
+</html>
