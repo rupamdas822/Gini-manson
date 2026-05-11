@@ -1,0 +1,108 @@
+/* ========== BANNER SIZE CONTROL FILE ========== */
+/* এই ফাইলটি index.html এর সাথে সংযুক্ত থাকবে */
+/* এখান থেকে ব্যানারের সাইজ কন্ট্রোল করুন - আপনি যেকোনো মান দিতে পারেন */
+
+/* ========== ডেস্কটপ / ল্যাপটপ (1025px and above) ========== */
+.slider-container {
+    max-width: 820px;
+}
+
+.slide img {
+    aspect-ratio: 16 / 9;
+}
+
+/* ========== ট্যাবলেট (769px - 1024px) ========== */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .slider-container {
+        max-width: 620px;
+    }
+}
+
+/* ========== মোবাইল ল্যান্ডস্কেপ (576px - 768px) ========== */
+@media (min-width: 576px) and (max-width: 768px) {
+    .slider-container {
+        max-width: 420px;
+    }
+}
+
+/* ========== মোবাইল পোর্ট্রেট (481px - 575px) ========== */
+@media (min-width: 481px) and (max-width: 575px) {
+    .slider-container {
+        max-width: 420px;
+    }
+}
+
+/* ========== ছোট মোবাইল (below 480px) ========== */
+@media (max-width: 480px) {
+    .slider-container {
+        max-width: 350px;
+    }
+}
+
+/* ========== অতিরিক্ত ছোট (below 360px) ========== */
+@media (max-width: 359px) {
+    .slider-container {
+        max-width: 300px;
+    }
+}
+
+/* ============================================ */
+/* ========== ব্যানারের আকৃতি পরিবর্তন ========== */
+/* ============================================ */
+
+/* বর্তমান সেটিং: 70mm Height × 90mm Width (9:7 ratio) */
+/* 
+   বিভিন্ন আকৃতি চাইলে নিচের মান ব্যবহার করুন:
+   
+   1. বর্গাকার ব্যানার চাইলে:      aspect-ratio: 1 / 1;
+   2. লম্বা ব্যানার চাইলে:         aspect-ratio: 2 / 3;
+   3. চ্যাপ্টা ব্যানার চাইলে:      aspect-ratio: 16 / 9;
+   4. সিনেমা স্টাইল চাইলে:         aspect-ratio: 21 / 9;
+   5. ফটো ফ্রেম স্টাইল চাইলে:      aspect-ratio: 4 / 3;
+   6. পাসপোর্ট সাইজ চাইলে:        aspect-ratio: 3 / 4;
+*/
+
+/* আপনি চাইলে নিচের লাইনের কমেন্ট তুলে দিয়ে আকৃতি পরিবর্তন করুন */
+
+/* বর্গাকার ব্যানার */
+/* .slide img { aspect-ratio: 1 / 1; } */
+
+/* চ্যাপ্টা ব্যানার (যেমন ফ্লিপকার্ট) */
+/* .slide img { aspect-ratio: 16 / 9; } */
+
+/* উঁচু ব্যানার */
+/* .slide img { aspect-ratio: 3 / 4; } */
+
+/* ============================================ */
+/* ========== ব্যানারের মার্জিন কন্ট্রোল ========== */
+/* ============================================ */
+
+/* ব্যানারের উপরে-নিচে গ্যাপ কন্ট্রোল করতে চাইলে */
+.hero-slider {
+    margin: 20px 0 30px 0;
+}
+
+/* ডটস এর পজিশন কন্ট্রোল */
+.slider-dots {
+    margin-top: 16px;
+    margin-bottom: 5px;
+}
+
+/* মোবাইলে মার্জিন কমাতে চাইলে */
+@media (max-width: 768px) {
+    .hero-slider {
+        margin: 15px 0 25px 0;
+    }
+    .slider-dots {
+        margin-top: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-slider {
+        margin: 10px 0 20px 0;
+    }
+    .slider-dots {
+        margin-top: 10px;
+    }
+}
