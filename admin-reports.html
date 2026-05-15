@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Reports & P&L | Joy Gini Manson's Cosmetics</title>
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='85' font-size='85' text-anchor='middle' fill='%238B4513'>💄</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f0eb; overflow-x: hidden; }
+        .sidebar { position: fixed; left: 0; top: 0; width: 260px; height: 100%; background: linear-gradient(135deg, #2c1810 0%, #1a0f0a 100%); color: white; transition: 0.3s; z-index: 100; overflow-y: auto; }
+        .sidebar-header { padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h3 { font-size: 1.2rem; letter-spacing: 2px; color: #D4AF37; }
+        .sidebar-header p { font-size: 0.7rem; opacity: 0.7; margin-top: 5px; }
+        .sidebar-menu { padding: 20px 0; }
+        .menu-item { padding: 12px 25px; display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,0.8); text-decoration: none; transition: 0.3s; border-left: 3px solid transparent; }
+        .menu-item:hover, .menu-item.active { background: rgba(212,175,55,0.1); border-left-color: #D4AF37; color: #D4AF37; }
+        .main-content { margin-left: 260px; padding: 20px; transition: 0.3s; }
+        .top-bar { background: white; border-radius: 15px; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .role-badge { background: #D4AF37; color: #2c1810; padding: 5px 12px; border-radius: 30px; font-size: 0.7rem; font-weight: 600; }
+        .logout-btn { background: #8B4513; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .logout-btn:hover { background: #5C2E0B; transform: translateY(-2px); }
+        .report-tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; border-bottom: 1px solid #f0e4d8; padding-bottom: 10px; }
+        .report-tab { padding: 8px 20px; background: white; border-radius: 30px; cursor: pointer; transition: 0.3s; font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .report-tab.active { background: #8B4513; color: white; }
+        .report-panel { display: none; }
+        .report-panel.active { display: block; }
+        .card-custom { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .filter-bar { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 20px; background: #fef9e6; padding: 12px; border-radius: 16px; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 0.7rem; font-weight: 600; color: #2c1810; }
+        .filter-group input, .filter-group select { padding: 8px 12px; border: 2px solid #e8ddd0; border-radius: 8px; background: white; }
+        .btn-sm { background: #8B4513; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: 0.3s; font-size: 0.8rem; }
+        .btn-sm:hover { background: #5C2E0B; transform: translateY(-2px); }
+        .btn-outline { background: transparent; border: 1px solid #8B4513; color: #8B4513; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: 0.3s; font-size: 0.8rem; }
+        .btn-outline:hover { background: #8B4513; color: white; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: #fef9e6; border-radius: 12px; padding: 12px; text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: #2c1810; }
+        .stat-label { font-size: 0.7rem; color: #8B7355; }
+        .chart-container { margin: 20px 0; height: 300px; position: relative; }
+        .table-responsive { overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f0e4d8; }
+        th { background: #f9f5f0; color: #2c1810; font-weight: 600; }
+        .menu-toggle { display: none; position: fixed; top: 15px; left: 15px; background: #8B4513; color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; z-index: 101; }
+        @media (max-width: 768px) { .sidebar { left: -260px; } .sidebar.active { left: 0; } .main-content { margin-left: 0; } .menu-toggle { display: block; } .top-bar { margin-top: 55px; } .filter-bar { flex-direction: column; align-items: stretch; } }
+        .alert { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; color: white; z-index: 1100; animation: slideIn 0.3s; font-size: 0.8rem; }
+        .alert-success { background: #2e7d32; }
+        .alert-error { background: #c62828; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .text-danger { color: #c62828; }
+        .expense-form { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; align-items: flex-end; }
+        .expense-list { margin-top: 10px; max-height: 200px; overflow-y: auto; }
+        .expense-item { display: flex; justify-content: space-between; align-items: center; background: #f9f5f0; padding: 8px 12px; margin-bottom: 5px; border-radius: 8px; font-size: 0.8rem; }
+        .delete-expense { color: #c62828; cursor: pointer; margin-left: 10px; }
+        .loading { text-align: center; padding: 40px; color: #8B7355; }
+        .payment-paid { background: #e8f5e9; color: #2e7d32; display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
+        .payment-pending { background: #fff3e0; color: #f57c00; display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
+        .payment-failed { background: #ffebee; color: #c62828; display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header"><h3>JOY GINI<br>MANSON'S</h3><p>Premium Cosmetics</p></div>
+        <div class="sidebar-menu">
+            <a href="admin-dashboard.html" class="menu-item"><i class="fas fa-chart-line"></i> Dashboard</a>
+            <a href="admin-products.html" class="menu-item"><i class="fas fa-box"></i> Products</a>
+            <a href="admin-orders.html" class="menu-item"><i class="fas fa-shopping-cart"></i> Orders</a>
+            <a href="admin-customers.html" class="menu-item"><i class="fas fa-users"></i> Customers</a>
+            <a href="admin-employees.html" class="menu-item"><i class="fas fa-id-badge"></i> Employees</a>
+            <a href="admin-stock.html" class="menu-item"><i class="fas fa-warehouse"></i> Stock</a>
+            <a href="admin-billing.html" class="menu-item"><i class="fas fa-receipt"></i> Billing</a>
+            <a href="admin-reports.html" class="menu-item active"><i class="fas fa-file-alt"></i> Reports</a>
+            <a href="admin-settings.html" class="menu-item"><i class="fas fa-cog"></i> Settings</a>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="top-bar">
+            <div><h2><i class="fas fa-chart-pie"></i> Reports & Analytics</h2><p>Profit & Loss, Sales Reports, Payment Status</p></div>
+            <div class="user-info"><span id="userName">Admin</span><span class="role-badge" id="userRole">Admin</span><button class="logout-btn" id="logoutBtn">Logout</button></div>
+        </div>
+
+        <div class="report-tabs" id="reportTabs">
+            <div class="report-tab active" data-tab="profitloss">💰 Profit & Loss</div>
+            <div class="report-tab" data-tab="reports">📊 Reports</div>
+        </div>
+
+        <!-- Profit & Loss Panel -->
+        <div id="pnl-profitloss" class="report-panel active">
+            <div class="card-custom">
+                <div class="filter-bar">
+                    <div class="filter-group"><label>Start Date</label><input type="date" id="plStartDate"></div>
+                    <div class="filter-group"><label>End Date</label><input type="date" id="plEndDate"></div>
+                    <div class="filter-group"><label>Quick Filter</label><select id="plQuickFilter"><option value="">Custom</option><option value="today">Today</option><option value="week">This Week</option><option value="month">This Month</option><option value="year">This Year</option></select></div>
+                    <button class="btn-sm" id="plLoadBtn">Load</button>
+                    <button class="btn-sm" id="plComparePrevBtn">Compare Previous</button>
+                    <button class="btn-outline" id="plExportCSVBtn">Export CSV</button>
+                    <button class="btn-outline" id="plPrintBtn">Print</button>
+                </div>
+                <div id="plSummary" class="stats-grid"><div class="loading">Loading...</div></div>
+                <div class="chart-container"><canvas id="plExpensePieChart"></canvas></div>
+                <div class="chart-container"><canvas id="plRevenueCostTrend"></canvas></div>
+                <div class="chart-container"><canvas id="plCategoryProfitChart"></canvas></div>
+                <div class="chart-container"><canvas id="plMonthlyProfitTrend"></canvas></div>
+                <h4 style="margin-top:15px;">💰 Manage Expenses</h4>
+                <div class="expense-form">
+                    <select id="expenseCategory"><option value="Rent">Rent</option><option value="Salaries">Salaries</option><option value="Marketing">Marketing</option><option value="Utilities">Utilities</option><option value="Misc">Misc</option></select>
+                    <input type="number" id="expenseAmount" placeholder="Amount" step="0.01">
+                    <input type="date" id="expenseDate">
+                    <button class="btn-sm" id="addExpenseBtn">Add Expense</button>
+                </div>
+                <div id="expenseList" class="expense-list"></div>
+                <h3>📋 Transaction Details</h3>
+                <div class="table-responsive"><table id="plTransactionTable"><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Amount (₹)</th></tr></thead><tbody></tbody></table></div>
+            </div>
+        </div>
+
+        <!-- Reports Panel (Full with Charts & Payment Status) -->
+        <div id="pnl-reports" class="report-panel">
+            <div class="card-custom">
+                <div class="filter-bar">
+                    <div class="filter-group"><label>Report Type</label><select id="reportType"><option value="sales">📈 Sales Report</option><option value="customer">👥 Customer Report</option><option value="stock">📦 Stock Report</option><option value="online">🛒 Online Orders</option></select></div>
+                    <div class="filter-group"><label>Start Date</label><input type="date" id="repStartDate"></div>
+                    <div class="filter-group"><label>End Date</label><input type="date" id="repEndDate"></div>
+                    <button class="btn-sm" id="repLoadBtn">Load</button>
+                    <button class="btn-outline" id="repExportCSVBtn">Export CSV</button>
+                    <button class="btn-outline" id="repPrintBtn">Print</button>
+                </div>
+                <div id="repStatsCards" class="stats-grid"><div class="loading">Loading...</div></div>
+                <div class="chart-container"><canvas id="repSalesTrendChart"></canvas></div>
+                <div class="chart-container"><canvas id="repPaymentModeChart"></canvas></div>
+                <div class="chart-container"><canvas id="repTopCustomersChart"></canvas></div>
+                <div class="chart-container"><canvas id="repStockByCategoryChart"></canvas></div>
+                <div class="chart-container"><canvas id="repStockStatusChart"></canvas></div>
+                <div class="chart-container"><canvas id="repCategorySalesProfitChart"></canvas></div>
+                <h3>📄 Report Data</h3>
+                <div class="table-responsive"><table id="repDataTable"><thead><tr><th>Loading...</th></tr></thead><tbody></tbody></table></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function checkAdminAccess() {
+            const user = localStorage.getItem('adminUser');
+            if (!user) { window.location.href = 'admin-login.html'; return; }
+            try {
+                const u = JSON.parse(user);
+                if (u.role !== 'admin') { alert('Access denied'); window.location.href = 'admin-dashboard.html'; return; }
+                document.getElementById('userName').innerText = u.full_name || u.email.split('@')[0];
+                document.getElementById('userRole').innerText = 'Administrator';
+            } catch(e) { window.location.href = 'admin-login.html'; }
+        })();
+
+        (function() {
+            const SUPABASE_URL = 'https://sbnkxplyjifishrocjge.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNibmt4cGx5amlmaXNocm9jamdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MDA5OTUsImV4cCI6MjA5MjM3Njk5NX0.dVASIJbH19EIEy6oenyjwKb2sJVjQ3YPZir6iNZCKGk';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            let plCharts = {}, repCharts = {};
+            let plTransactions = [], currentReportData = [], currentReportHeaders = [], currentReportType = 'sales';
+            let expenses = [];
+
+            async function loadExpenses() { const { data } = await supabase.from('expenses').select('*').order('date', { ascending: false }); expenses = data || []; renderExpenseList(); }
+            async function addExpense(cat, amt, date) { const { data, error } = await supabase.from('expenses').insert([{ category: cat, amount: amt, date }]).select(); if (!error && data) { expenses.unshift(data[0]); renderExpenseList(); showAlert('Expense added','success'); } else showAlert(error.message,'error'); }
+            async function deleteExpense(id) { await supabase.from('expenses').delete().eq('id', id); expenses = expenses.filter(e=>e.id!==id); renderExpenseList(); showAlert('Deleted','success'); }
+            function renderExpenseList() { const container = document.getElementById('expenseList'); if(!container) return; if(expenses.length===0) { container.innerHTML='<div class="loading">No expenses</div>'; return; } container.innerHTML = expenses.map(e=>`<div class="expense-item"><span><strong>${e.category}</strong> - ₹${e.amount} (${e.date})</span><i class="fas fa-trash delete-expense" data-id="${e.id}"></i></div>`).join(''); document.querySelectorAll('.delete-expense').forEach(el=>el.addEventListener('click',(e)=>{ deleteExpense(parseInt(e.target.dataset.id)); document.getElementById('plLoadBtn').click(); })); }
+            function showAlert(msg, type) { const el = document.createElement('div'); el.className = `alert alert-${type}`; el.innerHTML = `<i class="fas fa-${type==='success'?'check-circle':'exclamation-circle'}"></i> ${msg}`; document.body.appendChild(el); setTimeout(()=>el.remove(),3000); }
+            function formatDate(d) { return d.toISOString().slice(0,10); }
+            function getDateRangeFromQuick(type) { const t = new Date(); if(type==='today') return { start: formatDate(t), end: formatDate(t) }; if(type==='week') { const s = new Date(t); s.setDate(t.getDate()-t.getDay()); const e = new Date(s); e.setDate(s.getDate()+6); return { start: formatDate(s), end: formatDate(e) }; } if(type==='month') { const s = new Date(t.getFullYear(), t.getMonth(), 1); const e = new Date(t.getFullYear(), t.getMonth()+1, 0); return { start: formatDate(s), end: formatDate(e) }; } if(type==='year') { return { start: t.getFullYear()+'-01-01', end: t.getFullYear()+'-12-31' }; } return { start: null, end: null }; }
+
+            // ========== PROFIT & LOSS ==========
+            async function loadProfitLoss(start, end) {
+                try {
+                    let q = supabase.from('orders').select('id, total_amount, order_date, order_items(product_id, quantity, price_at_time)');
+                    if(start) q = q.gte('order_date', start); if(end) q = q.lte('order_date', end);
+                    const { data: orders } = await q;
+                    const { data: products } = await supabase.from('products').select('id, cost_price, category_id');
+                    const { data: categories } = await supabase.from('categories').select('id,name');
+                    const costMap = Object.fromEntries((products||[]).map(p=>[p.id, p.cost_price||0]));
+                    const catMap = Object.fromEntries((products||[]).map(p=>[p.id, p.category_id]));
+                    const catNameMap = Object.fromEntries((categories||[]).map(c=>[c.id, c.name]));
+                    let revenue=0, cogs=0, catProfit={};
+                    let transactions = [];
+                    for(const o of orders||[]) {
+                        revenue += o.total_amount||0;
+                        transactions.push({ date: o.order_date.slice(0,10), type:'Income', category:'Sales Revenue', amount: o.total_amount||0 });
+                        if(o.order_items) for(const it of o.order_items) {
+                            const cost = costMap[it.product_id] || (it.price_at_time*0.65);
+                            cogs += cost * it.quantity;
+                            const cat = catNameMap[catMap[it.product_id]] || 'Uncategorized';
+                            const profit = (it.price_at_time - cost) * it.quantity;
+                            catProfit[cat] = (catProfit[cat]||0) + profit;
+                        }
+                    }
+                    let totalExp=0, expMap={};
+                    const filteredExp = expenses.filter(e => (!start || e.date>=start) && (!end || e.date<=end));
+                    filteredExp.forEach(e=>{ totalExp+=e.amount; expMap[e.category]=(expMap[e.category]||0)+e.amount; transactions.push({ date:e.date, type:'Expense', category:e.category, amount:-e.amount }); });
+                    const gross = revenue - cogs, net = gross - totalExp;
+                    const gm = revenue ? (gross/revenue)*100 : 0, nm = revenue ? (net/revenue)*100 : 0;
+                    document.getElementById('plSummary').innerHTML = `<div class="stat-card"><div class="stat-value">₹${revenue.toFixed(2)}</div><div class="stat-label">Revenue</div></div><div class="stat-card"><div class="stat-value">₹${cogs.toFixed(2)}</div><div class="stat-label">COGS</div></div><div class="stat-card"><div class="stat-value">₹${gross.toFixed(2)}</div><div class="stat-label">Gross Profit</div></div><div class="stat-card"><div class="stat-value">${gm.toFixed(1)}%</div><div class="stat-label">Gross Margin</div></div><div class="stat-card"><div class="stat-value">₹${net.toFixed(2)}</div><div class="stat-label">Net Profit</div></div><div class="stat-card"><div class="stat-value">${nm.toFixed(1)}%</div><div class="stat-label">Net Margin</div></div>`;
+                    if(plCharts.expensePie) plCharts.expensePie.destroy();
+                    if(Object.keys(expMap).length) plCharts.expensePie = new Chart(document.getElementById('plExpensePieChart'), { type:'pie', data:{ labels:Object.keys(expMap), datasets:[{ data:Object.values(expMap), backgroundColor:['#ff6384','#36a2eb','#ffce56','#4bc0c0','#9966ff'] }] } });
+                    else { const ctx = document.getElementById('plExpensePieChart').getContext('2d'); ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); }
+                    const monthly = {}; (orders||[]).forEach(o=>{ const m=o.order_date.slice(0,7); monthly[m]=(monthly[m]||0)+o.total_amount; });
+                    const months = Object.keys(monthly).sort(), revData = months.map(m=>monthly[m]), cogsData = revData.map(r=>r*(cogs/(revenue||1)));
+                    if(plCharts.revCost) plCharts.revCost.destroy();
+                    plCharts.revCost = new Chart(document.getElementById('plRevenueCostTrend'), { type:'line', data:{ labels:months, datasets:[{ label:'Revenue', data:revData, borderColor:'#2e7d32' },{ label:'COGS', data:cogsData, borderColor:'#c62828' }] } });
+                    const catLabels = Object.keys(catProfit), catVals = catLabels.map(l=>catProfit[l]);
+                    if(plCharts.catProfit) plCharts.catProfit.destroy();
+                    if(catLabels.length) plCharts.catProfit = new Chart(document.getElementById('plCategoryProfitChart'), { type:'bar', data:{ labels:catLabels, datasets:[{ label:'Profit (₹)', data:catVals, backgroundColor:'#D4AF37' }] } });
+                    const netMonthly = {}; transactions.forEach(t=>{ const m=t.date.slice(0,7); netMonthly[m]=(netMonthly[m]||0)+(t.type==='Income'?t.amount:t.amount); });
+                    const netMonths = Object.keys(netMonthly).sort(), netData = netMonths.map(m=>netMonthly[m]);
+                    if(plCharts.monthlyProfit) plCharts.monthlyProfit.destroy();
+                    plCharts.monthlyProfit = new Chart(document.getElementById('plMonthlyProfitTrend'), { type:'line', data:{ labels:netMonths, datasets:[{ label:'Net Profit', data:netData, borderColor:'#8B4513' }] } });
+                    document.querySelector('#plTransactionTable tbody').innerHTML = transactions.map(t=>`<tr><td>${t.date}</td><td>${t.type}</td><td>${t.category}</td><td class="${t.amount<0?'text-danger':''}">${t.amount<0?'-₹'+Math.abs(t.amount).toFixed(2):'₹'+t.amount.toFixed(2)}</td></tr>`).join('');
+                    plTransactions = transactions;
+                } catch(e) { console.error(e); showAlert('P&L error','error'); }
+            }
+
+            // ========== REPORTS (All charts working) ==========
+            async function loadCategorySalesProfitChart(start, end) {
+                try {
+                    let orderIdsQuery = supabase.from('orders').select('id');
+                    if(start) orderIdsQuery = orderIdsQuery.gte('order_date', start);
+                    if(end) orderIdsQuery = orderIdsQuery.lte('order_date', end);
+                    const { data: orderIdsData } = await orderIdsQuery;
+                    const orderIds = (orderIdsData||[]).map(o=>o.id);
+                    if(orderIds.length===0) { if(repCharts.catSalesProfit) repCharts.catSalesProfit.destroy(); return; }
+                    const { data: items } = await supabase.from('order_items').select('product_id, quantity, price_at_time').in('order_id', orderIds);
+                    const { data: products } = await supabase.from('products').select('id, cost_price, category_id');
+                    const { data: categories } = await supabase.from('categories').select('id,name');
+                    const costMap = Object.fromEntries((products||[]).map(p=>[p.id, p.cost_price||0]));
+                    const catMap = Object.fromEntries((products||[]).map(p=>[p.id, p.category_id]));
+                    const catName = Object.fromEntries((categories||[]).map(c=>[c.id, c.name]));
+                    let sales={}, profit={};
+                    for(const it of items||[]) {
+                        const cat = catName[catMap[it.product_id]] || 'Uncategorized';
+                        const rev = (it.price_at_time||0) * (it.quantity||0);
+                        const cost = costMap[it.product_id] * (it.quantity||0);
+                        sales[cat] = (sales[cat]||0) + rev;
+                        profit[cat] = (profit[cat]||0) + (rev - cost);
+                    }
+                    const labels = Object.keys(sales);
+                    if(labels.length===0) { if(repCharts.catSalesProfit) repCharts.catSalesProfit.destroy(); return; }
+                    if(repCharts.catSalesProfit) repCharts.catSalesProfit.destroy();
+                    repCharts.catSalesProfit = new Chart(document.getElementById('repCategorySalesProfitChart'), { type:'bar', data:{ labels, datasets:[{ label:'Sales (₹)', data:labels.map(l=>sales[l]), backgroundColor:'#8B4513' },{ label:'Profit (₹)', data:labels.map(l=>profit[l]), backgroundColor:'#D4AF37' }] }, options:{ responsive:true, maintainAspectRatio:true, scales:{y:{beginAtZero:true}} } });
+                } catch(e) { console.warn('Category chart skipped', e); }
+            }
+
+            async function loadReport(type, start, end) {
+                try {
+                    currentReportType = type;
+                    if(type==='sales') {
+                        let q = supabase.from('orders').select('order_number, order_date, total_amount, payment_mode, payment_status');
+                        if(start) q = q.gte('order_date', start); if(end) q = q.lte('order_date', end);
+                        const { data } = await q.order('order_date', { ascending: false });
+                        const orders = data||[];
+                        currentReportData = orders.map(o=>({ order_number: o.order_number, date: o.order_date.slice(0,10), amount: o.total_amount||0, payment_mode: o.payment_mode||'N/A', payment_status: o.payment_status||'pending', status: 'completed' }));
+                        currentReportHeaders = ['Order #','Date','Amount (₹)','Payment Mode','Payment Status'];
+                        document.getElementById('repStatsCards').innerHTML = `<div class="stat-card"><div class="stat-value">${orders.length}</div><div class="stat-label">Total Orders</div></div><div class="stat-card"><div class="stat-value">₹${orders.reduce((s,o)=>s+(o.total_amount||0),0).toFixed(2)}</div><div class="stat-label">Total Sales</div></div>`;
+                        // Sales trend chart
+                        const daily = {}; orders.forEach(o=>{ const d=o.order_date.slice(0,10); daily[d]=(daily[d]||0)+o.total_amount; });
+                        const labels = Object.keys(daily).sort(), values = labels.map(l=>daily[l]);
+                        if(repCharts.salesTrend) repCharts.salesTrend.destroy();
+                        repCharts.salesTrend = new Chart(document.getElementById('repSalesTrendChart'), { type:'line', data:{ labels, datasets:[{ label:'Sales (₹)', data:values, borderColor:'#8B4513' }] } });
+                        // Payment mode pie
+                        const modeMap = {}; orders.forEach(o=>{ modeMap[o.payment_mode]=(modeMap[o.payment_mode]||0)+o.total_amount; });
+                        if(repCharts.paymentMode) repCharts.paymentMode.destroy();
+                        repCharts.paymentMode = new Chart(document.getElementById('repPaymentModeChart'), { type:'pie', data:{ labels:Object.keys(modeMap), datasets:[{ data:Object.values(modeMap), backgroundColor:['#8B4513','#D4AF37','#5C2E0B'] }] } });
+                        await loadCategorySalesProfitChart(start, end);
+                    }
+                    else if(type==='online') {
+                        let q = supabase.from('orders').select('order_number, order_date, total_amount, payment_status').eq('order_type', 'online');
+                        if(start) q = q.gte('order_date', start); if(end) q = q.lte('order_date', end);
+                        const { data } = await q.order('order_date', { ascending: false });
+                        const orders = data||[];
+                        currentReportData = orders.map(o=>({ order_number: o.order_number, date: o.order_date.slice(0,10), amount: o.total_amount||0, payment_status: o.payment_status||'pending' }));
+                        currentReportHeaders = ['Order #','Date','Amount (₹)','Payment Status'];
+                        document.getElementById('repStatsCards').innerHTML = `<div class="stat-card"><div class="stat-value">${orders.length}</div><div class="stat-label">Online Orders</div></div><div class="stat-card"><div class="stat-value">₹${orders.reduce((s,o)=>s+(o.total_amount||0),0).toFixed(2)}</div><div class="stat-label">Total Amount</div></div>`;
+                        // No special charts for online, just clear previous
+                        if(repCharts.salesTrend) repCharts.salesTrend.destroy();
+                        if(repCharts.paymentMode) repCharts.paymentMode.destroy();
+                        if(repCharts.topCust) repCharts.topCust.destroy();
+                        if(repCharts.stockCat) repCharts.stockCat.destroy();
+                        if(repCharts.stockStatus) repCharts.stockStatus.destroy();
+                        if(repCharts.catSalesProfit) repCharts.catSalesProfit.destroy();
+                    }
+                    else if(type==='customer') {
+                        let q = supabase.from('orders').select('customer_id, total_amount');
+                        if(start) q = q.gte('order_date', start); if(end) q = q.lte('order_date', end);
+                        const { data: orders } = await q;
+                        const spent = {}; (orders||[]).forEach(o=>{ if(o.customer_id) spent[o.customer_id]=(spent[o.customer_id]||0)+o.total_amount; });
+                        const { data: customers } = await supabase.from('customers').select('id, name, phone, email');
+                        const list = (customers||[]).filter(c=>spent[c.id]).map(c=>({ name: c.name, phone: c.phone, email: c.email, total_spent: spent[c.id], orders_count: (orders||[]).filter(o=>o.customer_id===c.id).length }));
+                        list.sort((a,b)=>b.total_spent - a.total_spent);
+                        currentReportData = list;
+                        currentReportHeaders = ['Customer Name','Phone','Email','Total Spent (₹)','Orders'];
+                        document.getElementById('repStatsCards').innerHTML = `<div class="stat-card"><div class="stat-value">${list.length}</div><div class="stat-label">Active Customers</div></div><div class="stat-card"><div class="stat-value">₹${list.reduce((s,c)=>s+c.total_spent,0).toFixed(2)}</div><div class="stat-label">Total Spent</div></div>`;
+                        const top5 = list.slice(0,5);
+                        if(repCharts.topCust) repCharts.topCust.destroy();
+                        repCharts.topCust = new Chart(document.getElementById('repTopCustomersChart'), { type:'bar', data:{ labels:top5.map(c=>c.name), datasets:[{ label:'Spent (₹)', data:top5.map(c=>c.total_spent), backgroundColor:'#D4AF37' }] } });
+                        // clear other charts
+                        if(repCharts.salesTrend) repCharts.salesTrend.destroy();
+                        if(repCharts.paymentMode) repCharts.paymentMode.destroy();
+                        if(repCharts.stockCat) repCharts.stockCat.destroy();
+                        if(repCharts.stockStatus) repCharts.stockStatus.destroy();
+                        if(repCharts.catSalesProfit) repCharts.catSalesProfit.destroy();
+                    }
+                    else if(type==='stock') {
+                        const { data: products } = await supabase.from('products').select('name, stock_quantity, subcategory_id');
+                        const list = (products||[]).map(p=>({ name: p.name, stock: p.stock_quantity||0, category: p.subcategory_id ? 'Subcategory' : 'Uncategorized' }));
+                        currentReportData = list;
+                        currentReportHeaders = ['Product','Stock Qty','Category'];
+                        document.getElementById('repStatsCards').innerHTML = `<div class="stat-card"><div class="stat-value">${list.length}</div><div class="stat-label">Total Products</div></div><div class="stat-card"><div class="stat-value">${list.filter(p=>p.stock===0).length}</div><div class="stat-label">Out of Stock</div></div>`;
+                        const catStock = {}; list.forEach(p=>{ catStock[p.category]=(catStock[p.category]||0)+p.stock; });
+                        if(repCharts.stockCat) repCharts.stockCat.destroy();
+                        repCharts.stockCat = new Chart(document.getElementById('repStockByCategoryChart'), { type:'bar', data:{ labels:Object.keys(catStock), datasets:[{ label:'Stock Quantity', data:Object.values(catStock), backgroundColor:'#8B4513' }] } });
+                        const low = list.filter(p=>p.stock<10 && p.stock>0).length, out = list.filter(p=>p.stock===0).length, instock = list.length - low - out;
+                        if(repCharts.stockStatus) repCharts.stockStatus.destroy();
+                        repCharts.stockStatus = new Chart(document.getElementById('repStockStatusChart'), { type:'pie', data:{ labels:['In Stock','Low (<10)','Out of Stock'], datasets:[{ data:[instock, low, out], backgroundColor:['#2e7d32','#f57c00','#c62828'] }] } });
+                        // clear others
+                        if(repCharts.salesTrend) repCharts.salesTrend.destroy();
+                        if(repCharts.paymentMode) repCharts.paymentMode.destroy();
+                        if(repCharts.topCust) repCharts.topCust.destroy();
+                        if(repCharts.catSalesProfit) repCharts.catSalesProfit.destroy();
+                    }
+                    renderReportTable();
+                } catch(e) { console.error(e); showAlert('Report error: '+e.message,'error'); }
+            }
+
+            function renderReportTable() {
+                const thead = document.getElementById('repDataTable').querySelector('thead');
+                const tbody = document.getElementById('repDataTable').querySelector('tbody');
+                if(!currentReportData.length){ thead.innerHTML='<tr><th>No Data</th></tr>'; tbody.innerHTML='<tr><td>No records found</td></tr>'; return; }
+                thead.innerHTML = `<tr>${currentReportHeaders.map(h=>`<th>${h}</th>`).join('')}</tr>`;
+                tbody.innerHTML = currentReportData.map(row=>{
+                    let cells = '';
+                    if(currentReportType==='sales') {
+                        const pClass = row.payment_status==='paid'?'payment-paid':(row.payment_status==='failed'?'payment-failed':'payment-pending');
+                        cells = `<td>${row.order_number}</td><td>${row.date}</td><td>₹${row.amount.toFixed(2)}</td><td>${row.payment_mode}</td><td><span class="${pClass}">${row.payment_status}</span></td>`;
+                    } else if(currentReportType==='online') {
+                        const pClass = row.payment_status==='paid'?'payment-paid':(row.payment_status==='failed'?'payment-failed':'payment-pending');
+                        cells = `<td>${row.order_number}</td><td>${row.date}</td><td>₹${row.amount.toFixed(2)}</td><td><span class="${pClass}">${row.payment_status}</span></td>`;
+                    } else if(currentReportType==='customer') {
+                        cells = `<td>${row.name}</td><td>${row.phone||''}</td><td>${row.email||''}</td><td>₹${row.total_spent.toFixed(2)}</td><td>${row.orders_count}</td>`;
+                    } else if(currentReportType==='stock') {
+                        cells = `<td>${row.name}</td><td>${row.stock}</td><td>${row.category}</td>`;
+                    }
+                    return `<tr>${cells}</tr>`;
+                }).join('');
+            }
+
+            function exportCurrentReport() {
+                if(!currentReportData.length){ showAlert('No data','error'); return; }
+                let csv = currentReportHeaders.join(',')+'\n';
+                for(const row of currentReportData){
+                    let line = currentReportHeaders.map(h=>{
+                        let val='';
+                        if(h==='Order #') val=row.order_number;
+                        else if(h==='Date') val=row.date;
+                        else if(h==='Amount (₹)') val=row.amount;
+                        else if(h==='Payment Mode') val=row.payment_mode;
+                        else if(h==='Payment Status') val=row.payment_status;
+                        else if(h==='Customer Name') val=row.name;
+                        else if(h==='Phone') val=row.phone;
+                        else if(h==='Email') val=row.email;
+                        else if(h==='Total Spent (₹)') val=row.total_spent;
+                        else if(h==='Orders') val=row.orders_count;
+                        else if(h==='Product') val=row.name;
+                        else if(h==='Stock Qty') val=row.stock;
+                        else if(h==='Category') val=row.category;
+                        else val='';
+                        if(typeof val==='string') val=val.replace(/"/g,'""');
+                        return `"${val}"`;
+                    }).join(',');
+                    csv+=line+'\n';
+                }
+                const blob=new Blob([csv],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${currentReportType}_report_${new Date().toISOString().slice(0,19)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+                showAlert('Exported','success');
+            }
+
+            function printCurrentReport() {
+                if(!currentReportData.length){ showAlert('Nothing to print','error'); return; }
+                const w = window.open('','_blank');
+                w.document.write(`<html><head><title>Report</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:8px}th{background:#f2f2f2}</style></head><body><h2>${currentReportType.toUpperCase()} Report</h2><p>Generated: ${new Date().toLocaleString()}</p><table><thead><tr>${currentReportHeaders.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>`);
+                for(const row of currentReportData){
+                    w.document.write('<tr>');
+                    if(currentReportType==='sales') w.document.write(`<td>${row.order_number}</td><td>${row.date}</td><td>₹${row.amount.toFixed(2)}</td><td>${row.payment_mode}</td><td>${row.payment_status}</td>`);
+                    else if(currentReportType==='online') w.document.write(`<td>${row.order_number}</td><td>${row.date}</td><td>₹${row.amount.toFixed(2)}</td><td>${row.payment_status}</td>`);
+                    else if(currentReportType==='customer') w.document.write(`<td>${row.name}</td><td>${row.phone||''}</td><td>${row.email||''}</td><td>₹${row.total_spent.toFixed(2)}</td><td>${row.orders_count}</td>`);
+                    else if(currentReportType==='stock') w.document.write(`<td>${row.name}</td><td>${row.stock}</td><td>${row.category}</td>`);
+                    w.document.write('</tr>');
+                }
+                w.document.write(`</tbody></table><footer>Joy Gini Manson's Cosmetics</footer></body></html>`);
+                w.document.close(); w.print();
+            }
+
+            // Event listeners
+            document.getElementById('plLoadBtn').onclick = async () => { let s=document.getElementById('plStartDate').value, e=document.getElementById('plEndDate').value; if(!s||!e){ const q=document.getElementById('plQuickFilter').value; if(q){ const r=getDateRangeFromQuick(q); s=r.start; e=r.end; } } await loadProfitLoss(s,e); };
+            document.getElementById('plQuickFilter').onchange = () => { const v=document.getElementById('plQuickFilter').value; if(v){ const r=getDateRangeFromQuick(v); document.getElementById('plStartDate').value=r.start||''; document.getElementById('plEndDate').value=r.end||''; } document.getElementById('plLoadBtn').click(); };
+            document.getElementById('plComparePrevBtn').onclick = async () => { let s=document.getElementById('plStartDate').value, e=document.getElementById('plEndDate').value; if(!s||!e) return; const days=(new Date(e)-new Date(s))/(86400000); const prevEnd=new Date(s); prevEnd.setDate(prevEnd.getDate()-1); const prevStart=new Date(prevEnd); prevStart.setDate(prevStart.getDate()-days); await loadProfitLoss(formatDate(prevStart), formatDate(prevEnd)); showAlert(`Comparing ${formatDate(prevStart)} to ${formatDate(prevEnd)}`,'success'); };
+            document.getElementById('plExportCSVBtn').onclick = () => { if(plTransactions.length) exportToCSV(plTransactions, ['Date','Type','Category','Amount'], 'profit_loss.csv'); else showAlert('No data','error'); };
+            document.getElementById('plPrintBtn').onclick = () => window.print();
+            document.getElementById('repLoadBtn').onclick = async () => { const type=document.getElementById('reportType').value, s=document.getElementById('repStartDate').value, e=document.getElementById('repEndDate').value; await loadReport(type, s||null, e||null); };
+            document.getElementById('repExportCSVBtn').onclick = exportCurrentReport;
+            document.getElementById('repPrintBtn').onclick = printCurrentReport;
+            document.getElementById('addExpenseBtn').onclick = async () => { const cat=document.getElementById('expenseCategory').value, amt=parseFloat(document.getElementById('expenseAmount').value), date=document.getElementById('expenseDate').value||formatDate(new Date()); if(isNaN(amt)||amt<=0){ showAlert('Valid amount','error'); return; } await addExpense(cat, amt, date); document.getElementById('expenseAmount').value=''; document.getElementById('plLoadBtn').click(); };
+            document.querySelectorAll('.report-tab').forEach(tab=>{ tab.addEventListener('click',function(){ document.querySelectorAll('.report-tab').forEach(t=>t.classList.remove('active')); document.querySelectorAll('.report-panel').forEach(p=>p.classList.remove('active')); this.classList.add('active'); document.getElementById(`pnl-${this.dataset.tab}`).classList.add('active'); if(this.dataset.tab==='profitloss') document.getElementById('plLoadBtn').click(); else document.getElementById('repLoadBtn').click(); }); });
+            document.getElementById('logoutBtn').onclick = () => { localStorage.removeItem('adminUser'); window.location.href='admin-login.html'; };
+            document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('active');
+
+            async function init() { await loadExpenses(); await loadProfitLoss(null, null); await loadReport('sales', null, null); }
+            init();
+            function exportToCSV(data, headers, filename) { if(!data.length) return; let csv=headers.join(',')+'\n'; data.forEach(row=>{ let line=headers.map(h=>{ let v=''; if(h==='Date') v=row.date; else if(h==='Type') v=row.type; else if(h==='Category') v=row.category; else if(h==='Amount') v=row.amount; else v=''; if(typeof v==='string') v=v.replace(/"/g,'""'); return `"${v}"`; }).join(','); csv+=line+'\n'; }); const blob=new Blob([csv],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); URL.revokeObjectURL(a.href); }
+        })();
+    </script>
+</body>
+</html>
