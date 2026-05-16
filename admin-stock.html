@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Stock Management | Joy Gini Manson's Cosmetics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f0eb; overflow-x: hidden; }
+        .sidebar { position: fixed; left: 0; top: 0; width: 260px; height: 100%; background: linear-gradient(135deg, #2c1810 0%, #1a0f0a 100%); color: white; transition: 0.3s; z-index: 100; overflow-y: auto; }
+        .sidebar-header { padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h3 { font-size: 1.2rem; letter-spacing: 2px; color: #D4AF37; }
+        .sidebar-header p { font-size: 0.7rem; opacity: 0.7; margin-top: 5px; }
+        .sidebar-menu { padding: 20px 0; }
+        .menu-item { padding: 12px 25px; display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,0.8); text-decoration: none; transition: 0.3s; border-left: 3px solid transparent; }
+        .menu-item:hover, .menu-item.active { background: rgba(212,175,55,0.1); border-left-color: #D4AF37; color: #D4AF37; }
+        .menu-item i { width: 22px; }
+        .main-content { margin-left: 260px; padding: 20px; transition: 0.3s; }
+        .top-bar { background: white; border-radius: 15px; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .role-badge { background: #D4AF37; color: #2c1810; padding: 5px 12px; border-radius: 30px; font-size: 0.7rem; font-weight: 600; }
+        .logout-btn { background: #8B4513; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .logout-btn:hover { background: #5C2E0B; }
+        .scanner-section { background: white; border-radius: 15px; padding: 20px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .scanner-input { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
+        .scanner-input input { flex: 1; padding: 14px; border: 2px solid #e8ddd0; border-radius: 12px; font-size: 1rem; font-family: monospace; }
+        .scanner-input input:focus { outline: none; border-color: #D4AF37; }
+        .camera-btn { background: #2c1810; color: white; border: none; padding: 14px 25px; border-radius: 12px; cursor: pointer; transition: 0.3s; }
+        .camera-btn:hover { background: #5C2E0B; }
+        .btn-primary { background: #8B4513; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-secondary { background: #D4AF37; color: #2c1810; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; transition: 0.3s; }
+        .btn-danger { background: #c62828; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+        .btn-success { background: #2e7d32; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .stat-card { background: white; border-radius: 15px; padding: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-number { font-size: 1.5rem; font-weight: 700; color: #2c1810; }
+        .stat-icon { width: 45px; height: 45px; background: #f5e6d3; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #8B4513; }
+        .filter-bar { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; background: white; padding: 15px; border-radius: 15px; align-items: center; }
+        .filter-select { padding: 10px 15px; border: 2px solid #e8ddd0; border-radius: 10px; background: white; cursor: pointer; }
+        .search-box { flex: 1; display: flex; }
+        .search-box input { flex: 1; padding: 10px; border: 2px solid #e8ddd0; border-radius: 10px 0 0 10px; }
+        .search-box button { padding: 10px 20px; background: #8B4513; color: white; border: none; border-radius: 0 10px 10px 0; cursor: pointer; }
+        .date-filter { display: flex; gap: 10px; align-items: center; }
+        .date-filter input { padding: 10px; border: 2px solid #e8ddd0; border-radius: 10px; }
+        .products-container { background: white; border-radius: 15px; padding: 20px; overflow-x: auto; }
+        .products-table { width: 100%; border-collapse: collapse; }
+        .products-table th, .products-table td { padding: 12px; text-align: left; border-bottom: 1px solid #f0e4d8; }
+        .products-table th { color: #8B7355; font-weight: 500; font-size: 0.75rem; text-transform: uppercase; }
+        .products-table tr:hover { background: #faf6f0; }
+        .stock-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+        .stock-high { background: #e8f5e9; color: #2e7d32; }
+        .stock-low { background: #fff3e0; color: #f57c00; }
+        .stock-out { background: #ffebee; color: #c62828; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 20px; max-width: 500px; width: 90%; padding: 25px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0e4d8; }
+        .modal-header h3 { color: #8B4513; }
+        .modal-close { font-size: 1.5rem; cursor: pointer; color: #8B7355; }
+        .modal-close:hover { color: #c62828; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #2c1810; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 2px solid #e8ddd0; border-radius: 10px; }
+        .camera-container { text-align: center; }
+        video { width: 100%; max-width: 400px; border-radius: 15px; margin-bottom: 15px; background: #000; }
+        .menu-toggle { display: none; position: fixed; top: 15px; left: 15px; z-index: 101; background: #8B4513; color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; }
+        @media (max-width: 768px) {
+            .sidebar { left: -260px; }
+            .sidebar.active { left: 0; }
+            .main-content { margin-left: 0; }
+            .menu-toggle { display: block; }
+            .top-bar { margin-top: 55px; }
+            .filter-bar { flex-direction: column; }
+            .date-filter { width: 100%; }
+            .date-filter input { flex: 1; }
+        }
+        .loading { text-align: center; padding: 40px; }
+        .loading-spinner { width: 40px; height: 40px; border: 3px solid #f0e4d8; border-top-color: #8B4513; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .alert { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 10px; color: white; z-index: 1100; animation: slideIn 0.3s ease; }
+        .alert-success { background: #2e7d32; }
+        .alert-error { background: #c62828; }
+        .alert-info { background: #1976d2; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .scanner-result { margin-top: 15px; padding: 10px; background: #e8f5e9; border-radius: 10px; display: none; }
+        .scanner-result.show { display: block; }
+        @media print {
+            .no-print { display: none; }
+            .barcode-label { page-break-inside: avoid; border: 1px solid #ddd; background: white; margin: 10px auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header"><h3>JOY GINI<br>MANSON'S</h3><p>Premium Cosmetics</p></div>
+        <div class="sidebar-menu">
+            <a href="admin-dashboard.html" class="menu-item"><i class="fas fa-chart-line"></i> Dashboard</a>
+            <a href="admin-products.html" class="menu-item"><i class="fas fa-box"></i> Products</a>
+            <a href="admin-orders.html" class="menu-item"><i class="fas fa-shopping-cart"></i> Orders</a>
+            <a href="admin-customers.html" class="menu-item"><i class="fas fa-users"></i> Customers</a>
+            <a href="admin-employees.html" class="menu-item"><i class="fas fa-id-badge"></i> Employees</a>
+            <a href="admin-stock.html" class="menu-item active"><i class="fas fa-warehouse"></i> Stock</a>
+            <a href="admin-billing.html" class="menu-item"><i class="fas fa-receipt"></i> Billing</a>
+            <a href="admin-reports.html" class="menu-item"><i class="fas fa-file-alt"></i> Reports</a>
+            <a href="admin-settings.html" class="menu-item"><i class="fas fa-cog"></i> Settings</a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="top-bar">
+            <div><h2><i class="fas fa-warehouse"></i> Stock Management</h2><p style="font-size: 0.75rem; color: #8B7355; margin-top: 5px;">Barcode/QR scanning, stock update, expiry tracking, bulk printing</p></div>
+            <div class="user-info">
+                <span class="user-name" id="userName">Admin</span>
+                <span class="role-badge" id="userRole">Admin</span>
+                <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
+
+        <!-- Barcode/QR Scanner Section -->
+        <div class="scanner-section">
+            <h3><i class="fas fa-qrcode"></i> Barcode / QR Scanner</h3>
+            <div class="scanner-input">
+                <input type="text" id="barcodeInput" placeholder="Type or scan barcode / QR (USB scanner works)" autofocus>
+                <button class="btn-primary" id="searchBarcodeBtn"><i class="fas fa-search"></i> Find Product</button>
+                <button class="camera-btn" id="startCameraBtn"><i class="fas fa-camera"></i> Scan with Camera</button>
+            </div>
+            <div id="cameraPreview" style="display: none; margin-top: 15px;">
+                <video id="video" playsinline autoplay style="width: 100%; max-width: 400px; border-radius: 15px; margin: 0 auto; display: block;"></video>
+                <div style="text-align: center; margin-top: 10px;">
+                    <button class="btn-secondary" id="stopCameraBtn"><i class="fas fa-stop"></i> Stop Camera</button>
+                </div>
+                <div id="scanResult" class="scanner-result"></div>
+            </div>
+            <small style="display: block; margin-top: 10px;"><i class="fas fa-info-circle"></i> USB Scanner: Just scan and product will be loaded | Camera auto-detects barcode/QR and opens stock update</small>
+        </div>
+
+        <!-- Stock Summary Cards -->
+        <div class="stats-grid" id="statsGrid"><div class="loading"><div class="loading-spinner"></div><p>Loading stats...</p></div></div>
+
+        <!-- Filters -->
+        <div class="filter-bar">
+            <select id="stockFilter" class="filter-select"><option value="all">All Stock Status</option><option value="high">In Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select>
+            <select id="expiryFilter" class="filter-select"><option value="all">All Expiry</option><option value="expiring">Expiring Soon (30 days)</option><option value="expired">Expired</option></select>
+            <div class="date-filter"><input type="date" id="fromDate" placeholder="From Date"><input type="date" id="toDate" placeholder="To Date"><button class="btn-secondary" id="applyDateFilter"><i class="fas fa-calendar"></i> Apply</button></div>
+            <div class="search-box"><input type="text" id="searchInput" placeholder="Search by name or barcode..."><button id="searchBtn"><i class="fas fa-search"></i></button></div>
+            <button class="btn-primary" id="bulkPrintBtn"><i class="fas fa-print"></i> Bulk Print Barcodes</button>
+            <button class="btn-secondary" id="exportCsvBtn"><i class="fas fa-file-csv"></i> Export CSV</button>
+            <button id="refreshBtn" class="btn-secondary"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+
+        <!-- Products Table -->
+        <div class="products-container"><div id="productsTable"><div class="loading"><div class="loading-spinner"></div><p>Loading products...</p></div></div></div>
+    </div>
+
+    <!-- Stock Update Modal -->
+    <div class="modal" id="stockModal">
+        <div class="modal-content">
+            <div class="modal-header"><h3><i class="fas fa-exchange-alt"></i> Update Stock</h3><span class="modal-close" id="modalClose">&times;</span></div>
+            <form id="stockForm">
+                <input type="hidden" id="productId">
+                <div class="form-group"><label>Product Name</label><input type="text" id="productName" readonly></div>
+                <div class="form-group"><label>Current Stock</label><input type="text" id="currentStock" readonly></div>
+                <div class="form-group"><label>Operation</label><select id="operationType" required><option value="add">Add Stock (+) </option><option value="remove">Remove Stock (-) </option></select></div>
+                <div class="form-group"><label>Quantity</label><input type="number" id="quantity" min="1" required></div>
+                <div class="form-group"><label>Reason</label><input type="text" id="reason" placeholder="New purchase, Damaged, Return, etc."></div>
+                <button type="submit" class="btn-primary" style="width:100%"><i class="fas fa-save"></i> Update Stock</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        (function() {
+            const SUPABASE_URL = 'https://sbnkxplyjifishrocjge.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNibmt4cGx5amlmaXNocm9jamdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MDA5OTUsImV4cCI6MjA5MjM3Njk5NX0.dVASIJbH19EIEy6oenyjwKb2sJVjQ3YPZir6iNZCKGk';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            let allProducts = [];
+            let currentStockFilter = 'all';
+            let currentExpiryFilter = 'all';
+            let currentSearchTerm = '';
+            let fromDate = '', toDate = '';
+
+            // Camera scanning variables
+            let videoStream = null;
+            let scanningActive = false;
+            let animationId = null;
+            let scanDebounce = false;
+            let barcodeDetector = null;
+            if ('BarcodeDetector' in window) {
+                barcodeDetector = new BarcodeDetector({ formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code'] });
+            } else {
+                console.warn("BarcodeDetector not supported. Camera scanning may not work.");
+            }
+
+            // ========== HELPER FUNCTIONS ==========
+            function showAlert(msg, type) {
+                const el = document.createElement('div');
+                el.className = `alert alert-${type}`;
+                el.innerHTML = `<i class="fas fa-${type==='success'?'check-circle':'exclamation-circle'}"></i> ${msg}`;
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 3000);
+            }
+
+            function escapeHtml(s) {
+                if (!s) return '';
+                return s.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
+            }
+
+            function checkAuth() {
+                const user = localStorage.getItem('adminUser');
+                if (!user) { window.location.href='admin-login.html'; return false; }
+                try {
+                    const u = JSON.parse(user);
+                    if (!u.isLoggedIn) { window.location.href='admin-login.html'; return false; }
+                    document.getElementById('userName').innerText = u.full_name || u.email.split('@')[0];
+                    document.getElementById('userRole').innerText = u.role === 'admin' ? 'Administrator' : 'Staff';
+                    return true;
+                } catch(e){ window.location.href='admin-login.html'; return false; }
+            }
+
+            // ========== ENHANCED PRODUCT FINDER (barcode / QR JSON / ID / name) ==========
+            function findProductByIdentifier(identifier) {
+                if (!identifier || typeof identifier !== 'string') return null;
+                let raw = identifier.trim();
+                // Try parsing JSON (for QR codes containing {"product_id":123} or {"barcode":"XYZ"})
+                try {
+                    let parsed = JSON.parse(raw);
+                    if (parsed.product_id) raw = parsed.product_id.toString();
+                    else if (parsed.barcode) raw = parsed.barcode.toString();
+                    else if (parsed.id) raw = parsed.id.toString();
+                } catch(e) { /* ignore, not JSON */ }
+                
+                // 1. Match by barcode
+                let product = allProducts.find(p => p.barcode === raw);
+                if (product) return product;
+                // 2. Match by numeric ID
+                let idNum = parseInt(raw);
+                if (!isNaN(idNum)) {
+                    product = allProducts.find(p => p.id === idNum);
+                    if (product) return product;
+                }
+                // 3. Match by name (exact case-insensitive)
+                product = allProducts.find(p => p.name.toLowerCase() === raw.toLowerCase());
+                if (product) return product;
+                return null;
+            }
+
+            // ========== LOAD PRODUCTS & RENDER ==========
+            async function loadProducts() {
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .order('name');
+                if (error) {
+                    showAlert('Failed to load products', 'error');
+                    return;
+                }
+                allProducts = data || [];
+                updateStats();
+                applyFilters();
+            }
+
+            function updateStats() {
+                const total = allProducts.length;
+                const lowStock = allProducts.filter(p => p.stock_quantity <= (p.min_stock_level || 5) && p.stock_quantity > 0).length;
+                const outStock = allProducts.filter(p => p.stock_quantity <= 0).length;
+                const expiringSoon = allProducts.filter(p => {
+                    if (!p.expiry_date) return false;
+                    const daysLeft = Math.ceil((new Date(p.expiry_date) - new Date()) / (1000 * 3600 * 24));
+                    return daysLeft <= 30 && daysLeft > 0;
+                }).length;
+                const totalValue = allProducts.reduce((sum, p) => sum + (p.stock_quantity * (p.cost_price || p.price || 0)), 0);
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="stat-card" onclick="document.getElementById('stockFilter').value='all'; applyFilters();"><div><h4>Total Products</h4><div class="stat-number">${total}</div></div><div class="stat-icon"><i class="fas fa-box"></i></div></div>
+                    <div class="stat-card" onclick="document.getElementById('stockFilter').value='low'; applyFilters();"><div><h4>Low Stock</h4><div class="stat-number" style="color:#f57c00;">${lowStock}</div></div><div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div></div>
+                    <div class="stat-card" onclick="document.getElementById('stockFilter').value='out'; applyFilters();"><div><h4>Out of Stock</h4><div class="stat-number" style="color:#c62828;">${outStock}</div></div><div class="stat-icon"><i class="fas fa-times-circle"></i></div></div>
+                    <div class="stat-card" onclick="document.getElementById('expiryFilter').value='expiring'; applyFilters();"><div><h4>Expiring Soon</h4><div class="stat-number" style="color:#f57c00;">${expiringSoon}</div></div><div class="stat-icon"><i class="fas fa-calendar-times"></i></div></div>
+                    <div class="stat-card"><div><h4>Stock Value</h4><div class="stat-number">₹${totalValue.toLocaleString('en-IN')}</div></div><div class="stat-icon"><i class="fas fa-rupee-sign"></i></div></div>
+                `;
+            }
+
+            function applyFilters() {
+                let filtered = [...allProducts];
+                if (currentSearchTerm) {
+                    filtered = filtered.filter(p => p.name.toLowerCase().includes(currentSearchTerm.toLowerCase()) || (p.barcode && p.barcode.includes(currentSearchTerm)));
+                }
+                if (currentStockFilter === 'low') filtered = filtered.filter(p => p.stock_quantity <= (p.min_stock_level||5) && p.stock_quantity > 0);
+                else if (currentStockFilter === 'out') filtered = filtered.filter(p => p.stock_quantity <= 0);
+                else if (currentStockFilter === 'high') filtered = filtered.filter(p => p.stock_quantity > (p.min_stock_level||5));
+                
+                if (currentExpiryFilter === 'expiring') {
+                    filtered = filtered.filter(p => {
+                        if (!p.expiry_date) return false;
+                        const daysLeft = Math.ceil((new Date(p.expiry_date) - new Date()) / (1000 * 3600 * 24));
+                        return daysLeft <= 30 && daysLeft > 0;
+                    });
+                } else if (currentExpiryFilter === 'expired') {
+                    filtered = filtered.filter(p => p.expiry_date && new Date(p.expiry_date) < new Date());
+                }
+                
+                if (fromDate && toDate) {
+                    filtered = filtered.filter(p => {
+                        const created = p.created_at?.split('T')[0];
+                        return created >= fromDate && created <= toDate;
+                    });
+                }
+                renderProducts(filtered);
+            }
+
+            function renderProducts(products) {
+                const container = document.getElementById('productsTable');
+                if (!products.length) {
+                    container.innerHTML = '<div class="loading"><p>No products found</p></div>';
+                    return;
+                }
+                let html = `<table class="products-table"><thead><tr><th>Barcode</th><th>Product Name</th><th>Brand</th><th>Current Stock</th><th>Min Level</th><th>Expiry Date</th><th>Batch No</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
+                for (let p of products) {
+                    const expiryDays = p.expiry_date ? Math.ceil((new Date(p.expiry_date) - new Date()) / (1000 * 3600 * 24)) : null;
+                    let expiryStatus = 'N/A';
+                    let expiryColor = '#666';
+                    if (p.expiry_date) {
+                        if (expiryDays < 0) { expiryStatus = 'Expired'; expiryColor = '#c62828'; }
+                        else if (expiryDays <= 30) { expiryStatus = 'Expiring Soon'; expiryColor = '#f57c00'; }
+                        else expiryStatus = 'Valid';
+                    }
+                    html += `
+                        <tr>
+                            <td>${p.barcode ? `<code style="font-size:0.7rem;">${escapeHtml(p.barcode)}</code><br><button class="btn-success" style="font-size:0.6rem; margin-top:5px; padding:2px 8px;" onclick="copyBarcode('${escapeHtml(p.barcode)}')">Copy</button>` : '<span class="stock-badge stock-out">No Barcode</span><br><button class="btn-primary" style="font-size:0.6rem; margin-top:5px; padding:2px 8px;" onclick="generateBarcodeForProduct('+p.id+')">Generate</button>'}</td>
+                            <td><strong>${escapeHtml(p.name)}</strong><br><small>${escapeHtml(p.brand || '-')}</small></td>
+                            <td>${escapeHtml(p.brand || '-')}</td>
+                            <td><span class="stock-badge ${p.stock_quantity<=0?'stock-out':(p.stock_quantity<=(p.min_stock_level||5)?'stock-low':'stock-high')}">${p.stock_quantity}</span></td>
+                            <td>${p.min_stock_level || 5}</td>
+                            <td>${p.expiry_date ? new Date(p.expiry_date).toLocaleDateString() : '-'}<br><small style="color:${expiryColor}">${expiryStatus}</small></td>
+                            <td>${p.batch_number || '-'}</td>
+                            <td>${p.stock_quantity<=0?'<span class="stock-badge stock-out">Out of Stock</span>':(p.stock_quantity<=(p.min_stock_level||5)?'<span class="stock-badge stock-low">Low Stock</span>':'<span class="stock-badge stock-high">In Stock</span>')} ${p.expiry_date && new Date(p.expiry_date)<new Date() ? '<span class="stock-badge stock-out">Expired</span>' : ''}</td>
+                            <td>
+                                <button class="btn-primary" style="padding:5px 10px; margin:2px;" onclick="openStockUpdate(${p.id}, '${escapeHtml(p.name)}', ${p.stock_quantity})"><i class="fas fa-exchange-alt"></i></button>
+                                <button class="btn-success" style="padding:5px 10px; margin:2px;" onclick="printSingleBarcode(${p.id})"><i class="fas fa-print"></i> Print</button>
+                                ${!p.barcode ? `<button class="btn-primary" style="padding:5px 10px; margin:2px;" onclick="generateBarcodeForProduct(${p.id})"><i class="fas fa-qrcode"></i> Gen</button>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+            }
+
+            // ========== STOCK UPDATE MODAL ==========
+            window.openStockUpdate = function(id, name, currentStock) {
+                document.getElementById('productId').value = id;
+                document.getElementById('productName').value = name;
+                document.getElementById('currentStock').value = currentStock;
+                document.getElementById('quantity').value = '';
+                document.getElementById('reason').value = '';
+                document.getElementById('operationType').value = 'add';
+                document.getElementById('stockModal').classList.add('active');
+            };
+
+            document.getElementById('stockForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const productId = document.getElementById('productId').value;
+                const operation = document.getElementById('operationType').value;
+                const quantity = parseInt(document.getElementById('quantity').value);
+                const reason = document.getElementById('reason').value;
+                const product = allProducts.find(p => p.id == productId);
+                if (!product) return;
+                let newQuantity = product.stock_quantity;
+                if (operation === 'add') newQuantity = product.stock_quantity + quantity;
+                else newQuantity = Math.max(0, product.stock_quantity - quantity);
+                
+                const { error } = await supabase
+                    .from('products')
+                    .update({ stock_quantity: newQuantity })
+                    .eq('id', productId);
+                if (error) {
+                    showAlert('Stock update failed', 'error');
+                    return;
+                }
+                // Insert stock history
+                await supabase.from('stock_history').insert({
+                    product_id: productId,
+                    changed_by: 1, // admin user id; ideally fetch from session
+                    previous_quantity: product.stock_quantity,
+                    new_quantity: newQuantity,
+                    change_reason: reason || (operation === 'add' ? 'Stock Added' : 'Stock Removed'),
+                    changed_at: new Date().toISOString()
+                });
+                showAlert(`Stock updated: ${product.stock_quantity} → ${newQuantity}`, 'success');
+                document.getElementById('stockModal').classList.remove('active');
+                loadProducts();
+            };
+
+            // ========== BARCODE GENERATION & PRINT ==========
+            window.generateBarcodeForProduct = async function(id) {
+                const barcode = 'JG' + String(id).padStart(8, '0');
+                const { error } = await supabase
+                    .from('products')
+                    .update({ barcode: barcode })
+                    .eq('id', id);
+                if (error) showAlert('Failed to generate barcode', 'error');
+                else {
+                    showAlert('Barcode generated: ' + barcode, 'success');
+                    loadProducts();
+                }
+            };
+
+            window.copyBarcode = function(barcode) {
+                navigator.clipboard.writeText(barcode);
+                showAlert('Barcode copied: ' + barcode, 'success');
+            };
+
+            window.printSingleBarcode = function(productId) {
+                const product = allProducts.find(p => p.id == productId);
+                if (!product || !product.barcode) {
+                    showAlert('No barcode found. Please generate barcode first.', 'error');
+                    return;
+                }
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                    <html><head><title>Barcode - ${escapeHtml(product.name)}</title>
+                    <style>body{font-family:'Courier New',monospace;text-align:center;padding:20px;}.label{border:1px solid #000;padding:20px;margin:20px auto;width:300px;background:white;border-radius:10px;}.product-name{font-size:14px;font-weight:bold;margin-bottom:10px;}.brand{font-size:10px;color:#666;margin-bottom:5px;}.price{font-size:12px;color:#8B4513;margin-top:10px;}svg{margin:10px 0;}</style>
+                    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>
+                    </head><body><div class="label"><div class="product-name">${escapeHtml(product.name)}</div>${product.brand?`<div class="brand">${escapeHtml(product.brand)}</div>`:''}<svg id="barcodeSvg"></svg><div class="price">₹${product.price}</div></div>
+                    <script>JsBarcode("#barcodeSvg", "${product.barcode}", {format:"CODE128",width:2,height:50,displayValue:true,fontSize:12,margin:10});<\/script>
+                    </body></html>
+                `);
+                printWindow.document.close();
+                printWindow.onload = () => { printWindow.print(); };
+            };
+
+            // Bulk print
+            document.getElementById('bulkPrintBtn').onclick = () => {
+                let productsToPrint = [...allProducts];
+                if (currentStockFilter === 'low') productsToPrint = productsToPrint.filter(p => p.stock_quantity <= (p.min_stock_level||5) && p.stock_quantity>0);
+                else if (currentStockFilter === 'out') productsToPrint = productsToPrint.filter(p => p.stock_quantity<=0);
+                else if (currentStockFilter === 'high') productsToPrint = productsToPrint.filter(p => p.stock_quantity > (p.min_stock_level||5));
+                if (currentExpiryFilter === 'expiring') productsToPrint = productsToPrint.filter(p => {
+                    if (!p.expiry_date) return false;
+                    const daysLeft = Math.ceil((new Date(p.expiry_date) - new Date()) / (1000 * 3600 * 24));
+                    return daysLeft <= 30 && daysLeft > 0;
+                });
+                else if (currentExpiryFilter === 'expired') productsToPrint = productsToPrint.filter(p => p.expiry_date && new Date(p.expiry_date) < new Date());
+                if (currentSearchTerm) productsToPrint = productsToPrint.filter(p => p.name.toLowerCase().includes(currentSearchTerm.toLowerCase()));
+                productsToPrint = productsToPrint.filter(p => p.barcode);
+                if (!productsToPrint.length) { showAlert('No products with barcode found for the selected filters','error'); return; }
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                    <html><head><title>Barcode Labels</title>
+                    <style>body{font-family:'Courier New',monospace;padding:20px;}.barcode-container{display:flex;flex-wrap:wrap;}.label{border:1px solid #ccc;padding:15px;margin:10px;text-align:center;width:280px;page-break-inside:avoid;background:white;border-radius:10px;}.product-name{font-size:13px;font-weight:bold;margin-bottom:8px;}.brand{font-size:10px;color:#666;margin-bottom:5px;}.price{font-size:11px;color:#8B4513;margin-top:8px;}svg{margin:8px 0;max-width:100%;height:auto;}</style>
+                    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>
+                    </head><body><div class="barcode-container" id="barcodeContainer"></div>
+                    <script>const products = ${JSON.stringify(productsToPrint.map(p => ({ name: p.name, brand: p.brand, price: p.price, barcode: p.barcode })))};
+                    const container = document.getElementById('barcodeContainer'); function escapeHtml(s){if(!s)return '';return s.replace(/[&<>]/g,m=>m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');}
+                    for(let p of products){const div=document.createElement('div');div.className='label';div.innerHTML='<div class="product-name">'+escapeHtml(p.name)+'</div>'+(p.brand?'<div class="brand">'+escapeHtml(p.brand)+'</div>':'')+'<svg class="barcode-svg"></svg><div class="price">₹'+p.price+'</div>';container.appendChild(div);JsBarcode(div.querySelector('.barcode-svg'),p.barcode,{format:"CODE128",width:2,height:50,displayValue:true,fontSize:11,margin:5});}
+                    window.onload = () => { window.print(); };<\/script>
+                    </body></html>
+                `);
+                printWindow.document.close();
+            };
+
+            // Export CSV
+            document.getElementById('exportCsvBtn').onclick = () => {
+                let productsToExport = [...allProducts];
+                if (currentStockFilter === 'low') productsToExport = productsToExport.filter(p => p.stock_quantity <= (p.min_stock_level||5) && p.stock_quantity>0);
+                else if (currentStockFilter === 'out') productsToExport = productsToExport.filter(p => p.stock_quantity<=0);
+                else if (currentStockFilter === 'high') productsToExport = productsToExport.filter(p => p.stock_quantity > (p.min_stock_level||5));
+                if (currentSearchTerm) productsToExport = productsToExport.filter(p => p.name.toLowerCase().includes(currentSearchTerm.toLowerCase()) || (p.barcode && p.barcode.includes(currentSearchTerm)));
+                let csv = 'Product Name,Brand,Stock Quantity,Min Level,Price,Barcode,Expiry Date,Batch Number,Status\n';
+                productsToExport.forEach(p => {
+                    csv += `"${p.name}","${p.brand||''}",${p.stock_quantity},${p.min_stock_level||5},${p.price},"${p.barcode||''}",${p.expiry_date||''},${p.batch_number||''},${p.stock_quantity<=0?'Out of Stock':(p.stock_quantity<=(p.min_stock_level||5)?'Low Stock':'In Stock')}\n`;
+                });
+                const blob = new Blob([csv], {type:'text/csv'});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `stock_report_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+                showAlert('CSV exported!', 'success');
+            };
+
+            // ========== CAMERA SCANNING (requestAnimationFrame, no mirror) ==========
+            async function startCamera() {
+                if (scanningActive) return;
+                try {
+                    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    const video = document.getElementById('video');
+                    video.srcObject = videoStream;
+                    await video.play();
+                    document.getElementById('cameraPreview').style.display = 'block';
+                    document.getElementById('startCameraBtn').style.display = 'none';
+                    document.getElementById('scanResult').innerHTML = 'Scanning... position barcode/QR in frame';
+                    document.getElementById('scanResult').classList.add('show');
+                    scanningActive = true;
+                    scanDebounce = false;
+                    scanFrame();
+                } catch(e) {
+                    showAlert('Camera access denied', 'error');
+                }
+            }
+
+            async function scanFrame() {
+                if (!scanningActive) return;
+                const video = document.getElementById('video');
+                if (!video.videoWidth || !video.videoHeight) {
+                    animationId = requestAnimationFrame(scanFrame);
+                    return;
+                }
+                if (barcodeDetector && !scanDebounce) {
+                    try {
+                        const barcodes = await barcodeDetector.detect(video);
+                        if (barcodes && barcodes.length > 0) {
+                            const rawValue = barcodes[0].rawValue;
+                            scanDebounce = true;
+                            document.getElementById('scanResult').innerHTML = `✅ Detected: ${rawValue}`;
+                            const product = findProductByIdentifier(rawValue);
+                            if (product) {
+                                stopCamera();
+                                openStockUpdate(product.id, product.name, product.stock_quantity);
+                                showAlert(`Product found: ${product.name}`, 'success');
+                            } else {
+                                document.getElementById('barcodeInput').value = rawValue;
+                                showAlert(`No product found for identifier: ${rawValue}`, 'error');
+                                stopCamera();
+                            }
+                            return;
+                        } else {
+                            document.getElementById('scanResult').innerHTML = 'Position barcode/QR in frame...';
+                        }
+                    } catch(e) { console.warn(e); }
+                } else if (!barcodeDetector) {
+                    document.getElementById('scanResult').innerHTML = 'BarcodeDetector not supported. Use USB scanner.';
+                }
+                animationId = requestAnimationFrame(scanFrame);
+            }
+
+            function stopCamera() {
+                scanningActive = false;
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+                if (videoStream) {
+                    videoStream.getTracks().forEach(t => t.stop());
+                    videoStream = null;
+                }
+                const video = document.getElementById('video');
+                if (video) video.srcObject = null;
+                document.getElementById('cameraPreview').style.display = 'none';
+                document.getElementById('startCameraBtn').style.display = 'block';
+                document.getElementById('scanResult').classList.remove('show');
+                scanDebounce = false;
+                document.getElementById('barcodeInput').focus();
+            }
+
+            document.getElementById('startCameraBtn').onclick = startCamera;
+            document.getElementById('stopCameraBtn').onclick = stopCamera;
+
+            // ========== USB SCANNER & MANUAL SEARCH ==========
+            document.getElementById('searchBarcodeBtn').onclick = () => {
+                const code = document.getElementById('barcodeInput').value.trim();
+                if (!code) { showAlert('Enter barcode/QR', 'error'); return; }
+                const product = findProductByIdentifier(code);
+                if (product) openStockUpdate(product.id, product.name, product.stock_quantity);
+                else showAlert('Product not found', 'error');
+                document.getElementById('barcodeInput').value = '';
+            };
+            document.getElementById('barcodeInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('searchBarcodeBtn').click();
+            });
+
+            // ========== FILTER EVENT HANDLERS ==========
+            document.getElementById('searchBtn').onclick = () => {
+                currentSearchTerm = document.getElementById('searchInput').value.toLowerCase();
+                applyFilters();
+            };
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('searchBtn').click();
+            });
+            document.getElementById('stockFilter').onchange = (e) => {
+                currentStockFilter = e.target.value;
+                applyFilters();
+            };
+            document.getElementById('expiryFilter').onchange = (e) => {
+                currentExpiryFilter = e.target.value;
+                applyFilters();
+            };
+            document.getElementById('applyDateFilter').onclick = () => {
+                fromDate = document.getElementById('fromDate').value;
+                toDate = document.getElementById('toDate').value;
+                applyFilters();
+            };
+            document.getElementById('refreshBtn').onclick = () => loadProducts();
+
+            document.getElementById('modalClose').onclick = () => document.getElementById('stockModal').classList.remove('active');
+            document.getElementById('logoutBtn').onclick = () => { localStorage.removeItem('adminUser'); window.location.href='admin-login.html'; };
+            document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('active');
+
+            // ========== INIT ==========
+            async function init() {
+                if (!checkAuth()) return;
+                await loadProducts();
+                document.getElementById('barcodeInput').focus();
+            }
+            init();
+        })();
+    </script>
+</body>
+</html>

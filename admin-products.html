@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Products | Joy Gini Manson's Cosmetics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f0eb; overflow-x: hidden; }
+        .sidebar {
+            position: fixed; left: 0; top: 0; width: 260px; height: 100%;
+            background: linear-gradient(135deg, #2c1810 0%, #1a0f0a 100%);
+            color: white; transition: 0.3s; z-index: 100; overflow-y: auto;
+        }
+        .sidebar-header { padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h3 { font-size: 1.2rem; letter-spacing: 2px; color: #D4AF37; }
+        .sidebar-header p { font-size: 0.7rem; opacity: 0.7; margin-top: 5px; }
+        .sidebar-menu { padding: 20px 0; }
+        .menu-item {
+            padding: 12px 25px; display: flex; align-items: center; gap: 12px;
+            color: rgba(255,255,255,0.8); text-decoration: none; transition: 0.3s;
+            border-left: 3px solid transparent;
+        }
+        .menu-item:hover, .menu-item.active { background: rgba(212,175,55,0.1); border-left-color: #D4AF37; color: #D4AF37; }
+        .main-content { margin-left: 260px; padding: 20px; transition: 0.3s; }
+        .top-bar {
+            background: white; border-radius: 15px; padding: 15px 25px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .role-badge { background: #D4AF37; color: #2c1810; padding: 5px 12px; border-radius: 30px; font-size: 0.7rem; font-weight: 600; }
+        .logout-btn { background: #8B4513; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .logout-btn:hover { background: #5C2E0B; transform: translateY(-2px); }
+        .btn-primary { background: #8B4513; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.3s; }
+        .btn-primary:hover { background: #5C2E0B; transform: translateY(-2px); }
+        .btn-secondary { background: #D4AF37; color: #2c1810; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; transition: 0.3s; }
+        .btn-secondary:hover { transform: translateY(-2px); }
+        .btn-danger { background: #c62828; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+        .btn-success { background: #2e7d32; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+        .filter-bar {
+            display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px;
+            background: white; padding: 15px; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            align-items: center;
+        }
+        .search-box { flex: 1; display: flex; }
+        .search-box input { flex: 1; padding: 10px; border: 2px solid #e8ddd0; border-radius: 10px 0 0 10px; }
+        .search-box button { padding: 10px 20px; background: #8B4513; color: white; border: none; border-radius: 0 10px 10px 0; cursor: pointer; }
+        .category-filter { min-width: 180px; }
+        .category-filter select { width: 100%; padding: 10px; border: 2px solid #e8ddd0; border-radius: 10px; background: white; }
+        .barcode-search-area {
+            background: #fffaf2; padding: 15px; border-radius: 15px; margin-bottom: 20px;
+            display: flex; flex-wrap: wrap; align-items: center; gap: 15px;
+            justify-content: space-between;
+        }
+        .barcode-search-box { display: flex; flex: 2; min-width: 250px; }
+        .barcode-search-box input { flex: 1; padding: 10px; border: 2px solid #D4AF37; border-radius: 10px 0 0 10px; }
+        .barcode-search-box button { padding: 10px 20px; background: #8B4513; color: white; border: none; border-radius: 0 10px 10px 0; cursor: pointer; }
+        .camera-scan-btn { background: #2c1810; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+        .products-container { background: white; border-radius: 15px; padding: 20px; overflow-x: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .products-table { width: 100%; border-collapse: collapse; }
+        .products-table th, .products-table td { padding: 12px; text-align: left; border-bottom: 1px solid #f0e4d8; vertical-align: middle; }
+        .product-image { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; background: #f5f0eb; }
+        .modal {
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index:1000;
+            justify-content: center; align-items: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white; border-radius: 20px; max-width: 650px; width: 90%;
+            max-height: 85vh; overflow-y: auto; padding: 25px;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0e4d8; }
+        .modal-close { font-size: 1.5rem; cursor: pointer; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 2px solid #e8ddd0; border-radius: 10px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .image-upload-area { border: 2px dashed #D4AF37; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; margin-bottom: 10px; }
+        .image-preview { max-width: 100px; max-height: 100px; border-radius: 10px; margin-top: 10px; }
+        .barcode-scan-area { background: #f9f5f0; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .camera-container { text-align: center; }
+        video { width: 100%; max-width: 400px; border-radius: 15px; margin-bottom: 15px; }
+        .menu-toggle { display: none; position: fixed; top: 15px; left: 15px; background: #8B4513; color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; z-index: 101; }
+        @media (max-width: 768px) {
+            .sidebar { left: -260px; }
+            .sidebar.active { left: 0; }
+            .main-content { margin-left: 0; }
+            .menu-toggle { display: block; }
+            .top-bar { margin-top: 55px; }
+            .form-row { grid-template-columns: 1fr; }
+            .filter-bar, .barcode-search-area { flex-direction: column; align-items: stretch; }
+        }
+        .loading { text-align: center; padding: 40px; }
+        .loading-spinner { width: 40px; height: 40px; border: 3px solid #f0e4d8; border-top-color: #8B4513; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .alert {
+            position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 10px;
+            color: white; z-index: 1100; animation: slideIn 0.3s;
+        }
+        .alert-success { background: #2e7d32; }
+        .alert-error { background: #c62828; }
+        .alert-info { background: #1976d2; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .add-new-card {
+            background: #fff8f0; border: 2px dashed #D4AF37; border-radius: 15px;
+            padding: 15px; margin-bottom: 15px; text-align: center;
+        }
+        .add-new-btn {
+            background: #8B4513; color: white; border: none;
+            padding: 12px 25px; border-radius: 50px; cursor: pointer;
+            font-weight: 600; margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header"><h3>JOY GINI<br>MANSON'S</h3><p>Premium Cosmetics</p></div>
+        <div class="sidebar-menu">
+            <a href="admin-dashboard.html" class="menu-item"><i class="fas fa-chart-line"></i> Dashboard</a>
+            <a href="admin-products.html" class="menu-item active"><i class="fas fa-box"></i> Products</a>
+            <a href="admin-orders.html" class="menu-item"><i class="fas fa-shopping-cart"></i> Orders</a>
+            <a href="admin-customers.html" class="menu-item"><i class="fas fa-users"></i> Customers</a>
+            <a href="admin-employees.html" class="menu-item"><i class="fas fa-id-badge"></i> Employees</a>
+            <a href="admin-stock.html" class="menu-item"><i class="fas fa-warehouse"></i> Stock</a>
+            <a href="admin-billing.html" class="menu-item"><i class="fas fa-receipt"></i> Billing</a>
+            <a href="admin-reports.html" class="menu-item"><i class="fas fa-file-alt"></i> Reports</a>
+            <a href="admin-settings.html" class="menu-item"><i class="fas fa-cog"></i> Settings</a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="top-bar">
+            <div><h2><i class="fas fa-box"></i> Products</h2><p>Manage your product catalog | Add, edit, delete, scan barcode/QR</p></div>
+            <div class="user-info">
+                <span id="userName">Admin</span>
+                <span class="role-badge" id="userRole">Admin</span>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <button class="btn-primary" id="addProductBtn"><i class="fas fa-plus"></i> Add Product</button>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search product name...">
+                <button id="searchBtn"><i class="fas fa-search"></i></button>
+            </div>
+            <div class="category-filter">
+                <select id="categoryFilter">
+                    <option value="all">All Categories</option>
+                </select>
+            </div>
+            <button id="refreshBtn" class="btn-secondary"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+
+        <!-- Barcode/QR Search Section with Add New Option -->
+        <div class="barcode-search-area">
+            <div class="barcode-search-box">
+                <input type="text" id="barcodeSearchInput" placeholder="Scan barcode / QR or type...">
+                <button id="barcodeSearchBtn"><i class="fas fa-barcode"></i> Find</button>
+            </div>
+            <button id="cameraScanBtn" class="camera-scan-btn"><i class="fas fa-camera"></i> Scan Barcode/QR</button>
+            <button id="clearBarcodeFilter" class="btn-secondary">Clear Filter</button>
+        </div>
+
+        <!-- Dynamic result area for barcode/QR search (will show "Add New" if not found) -->
+        <div id="barcodeSearchResult"></div>
+
+        <div class="products-container">
+            <div id="productsTable"><div class="loading"><div class="loading-spinner"></div><p>Loading products...</p></div></div>
+        </div>
+    </div>
+
+    <!-- Product Modal (Add/Edit) -->
+    <div class="modal" id="productModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle"><i class="fas fa-plus"></i> Add Product</h3>
+                <span class="modal-close" id="modalClose">&times;</span>
+            </div>
+            <div class="barcode-scan-area">
+                <label><i class="fas fa-qrcode"></i> Barcode / QR for this product</label>
+                <div class="form-row">
+                    <input type="text" id="modalBarcodeInput" placeholder="Type or scan barcode/QR">
+                    <button class="camera-btn" id="modalCameraBtn"><i class="fas fa-camera"></i> Camera</button>
+                    <button class="btn-primary" id="modalSearchBarcodeBtn">Find Existing</button>
+                </div>
+            </div>
+            <form id="productForm">
+                <input type="hidden" id="productId">
+                <div class="form-row">
+                    <div class="form-group"><label>Product Name *</label><input type="text" id="productName" required></div>
+                    <div class="form-group"><label>Brand</label><input type="text" id="productBrand"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Category *</label><select id="productCategory" required></select></div>
+                    <div class="form-group"><label>Price (₹) *</label><input type="number" step="0.01" id="productPrice" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Cost Price (₹)</label><input type="number" step="0.01" id="productCostPrice"></div>
+                    <div class="form-group"><label>Stock</label><input type="number" id="productStock" value="0"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Barcode</label><input type="text" id="productBarcode"></div>
+                    <div class="form-group"><label>Min Stock Level</label><input type="number" id="productMinStock" value="5"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Expiry Date</label><input type="date" id="productExpiry"></div>
+                    <div class="form-group"><label>Batch Number</label><input type="text" id="productBatch"></div>
+                </div>
+                <div class="form-group">
+                    <label>Product Image</label>
+                    <div class="image-upload-area" id="imageUploadArea">
+                        <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:#8B4513;"></i>
+                        <p>Click to upload image</p>
+                        <input type="file" id="imageFile" accept="image/*" style="display:none;">
+                        <input type="hidden" id="productImageUrl">
+                        <div id="imagePreview"></div>
+                    </div>
+                    <small>Or provide Image URL below</small>
+                    <input type="url" id="productImageManual" placeholder="https://..." style="margin-top:8px;">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="productDescription" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="productActive" checked> Active</label>
+                </div>
+                <button type="submit" class="btn-primary" style="width:100%; margin-top:10px;"><i class="fas fa-save"></i> Save Product</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div class="modal" id="cameraModal">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header">
+                <h3>Scan Barcode / QR</h3>
+                <span class="modal-close" id="cameraModalClose">&times;</span>
+            </div>
+            <div class="camera-container">
+                <video id="video" playsinline autoplay></video>
+                <div id="scanStatus" style="margin:10px 0;"></div>
+                <button class="btn-secondary" id="stopCameraBtn">Stop Camera</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        (function() {
+            const SUPABASE_URL = 'https://sbnkxplyjifishrocjge.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNibmt4cGx5amlmaXNocm9jamdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MDA5OTUsImV4cCI6MjA5MjM3Njk5NX0.dVASIJbH19EIEy6oenyjwKb2sJVjQ3YPZir6iNZCKGk';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            let allProducts = [], allCategories = [];
+            let currentCategoryFilter = 'all';
+            let currentSearchTerm = '';
+            let currentBarcodeFilter = '';
+            let videoStream = null;
+            let scanningActive = false;
+            let animationId = null;
+            let scanDebounce = false;
+            let barcodeDetector = null;
+            let currentScanCallback = null; // for modal camera
+
+            if ('BarcodeDetector' in window) {
+                barcodeDetector = new BarcodeDetector({ formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code'] });
+            } else {
+                console.warn("BarcodeDetector not supported. Camera scanning may not work.");
+            }
+
+            // ========== HELPER FUNCTIONS ==========
+            function showAlert(msg, type) {
+                const el = document.createElement('div');
+                el.className = `alert alert-${type}`;
+                el.innerHTML = `<i class="fas fa-${type==='success'?'check-circle':'exclamation-circle'}"></i> ${msg}`;
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 3000);
+            }
+            
+            function escapeHtml(s) {
+                if (!s) return '';
+                return s.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':m==='>'?'&gt;':m);
+            }
+            
+            function checkAuth() {
+                const user = localStorage.getItem('adminUser');
+                if (!user) { window.location.href = 'admin-login.html'; return false; }
+                try {
+                    const u = JSON.parse(user);
+                    if (!u.isLoggedIn) { window.location.href = 'admin-login.html'; return false; }
+                    document.getElementById('userName').innerText = u.full_name || u.email.split('@')[0];
+                    document.getElementById('userRole').innerText = u.role === 'admin' ? 'Admin' : 'Staff';
+                    return true;
+                } catch(e) { window.location.href = 'admin-login.html'; return false; }
+            }
+            
+            // ========== ENHANCED PRODUCT FINDER (barcode / QR JSON / ID / name) ==========
+            function findProductByIdentifier(identifier) {
+                if (!identifier || typeof identifier !== 'string') return null;
+                let raw = identifier.trim();
+                // Try JSON parse (for QR codes that contain {"product_id":123} or {"barcode":"XYZ"})
+                try {
+                    let parsed = JSON.parse(raw);
+                    if (parsed.product_id) raw = parsed.product_id.toString();
+                    else if (parsed.barcode) raw = parsed.barcode.toString();
+                    else if (parsed.id) raw = parsed.id.toString();
+                } catch(e) { /* ignore, not JSON */ }
+                
+                // 1. Match by barcode
+                let product = allProducts.find(p => p.barcode === raw);
+                if (product) return product;
+                // 2. Match by numeric ID
+                let idNum = parseInt(raw);
+                if (!isNaN(idNum)) {
+                    product = allProducts.find(p => p.id === idNum);
+                    if (product) return product;
+                }
+                // 3. Match by name (exact case-insensitive)
+                product = allProducts.find(p => p.name.toLowerCase() === raw.toLowerCase());
+                if (product) return product;
+                return null;
+            }
+            
+            // ========== CATEGORIES & PRODUCTS ==========
+            async function loadCategories() {
+                const { data, error } = await supabase.from('categories').select('id,name').order('name');
+                if (error) return;
+                allCategories = data || [];
+                const catSelect = document.getElementById('productCategory');
+                const filterSelect = document.getElementById('categoryFilter');
+                if (allCategories.length === 0) {
+                    catSelect.innerHTML = '<option value="">No categories found</option>';
+                    filterSelect.innerHTML = '<option value="all">All Categories</option>';
+                } else {
+                    catSelect.innerHTML = allCategories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+                    filterSelect.innerHTML = '<option value="all">All Categories</option>' + allCategories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+                }
+            }
+            
+            async function loadProducts() {
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('*, categories(name)')
+                    .order('name');
+                if (error) return;
+                allProducts = data || [];
+                applyFiltersAndRender();
+            }
+            
+            function applyFiltersAndRender() {
+                let filtered = [...allProducts];
+                if (currentSearchTerm) {
+                    filtered = filtered.filter(p => p.name.toLowerCase().includes(currentSearchTerm.toLowerCase()));
+                }
+                if (currentCategoryFilter !== 'all') {
+                    filtered = filtered.filter(p => p.category_id == currentCategoryFilter);
+                }
+                if (currentBarcodeFilter) {
+                    filtered = filtered.filter(p => p.barcode === currentBarcodeFilter);
+                }
+                renderProducts(filtered);
+            }
+            
+            function renderProducts(products) {
+                const container = document.getElementById('productsTable');
+                if (!products.length) {
+                    container.innerHTML = '<div class="loading"><p>No products found</p></div>';
+                    return;
+                }
+                let html = `<table class="products-table">
+                    <thead>
+                        <tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Barcode</th><th>Actions</th></tr>
+                    </thead><tbody>`;
+                for (let p of products) {
+                    const catName = p.categories?.name || 'Uncategorized';
+                    html += `
+                        <tr>
+                            <td>${p.image_url ? `<img src="${p.image_url}" class="product-image" onerror="this.src='https://placehold.co/50x50'">` : '📷'}</div>
+                            <td><strong>${escapeHtml(p.name)}</strong><br><small>${escapeHtml(p.brand || '')}</small></div>
+                            <td>${escapeHtml(catName)}</div>
+                            <td>₹${(p.price||0).toLocaleString('en-IN')}</div>
+                            <td>${p.stock_quantity||0}</div>
+                            <td>${p.barcode || '-'}</div>
+                            <td class="action-icons">
+                                <button class="btn-primary" style="padding:5px 10px;" onclick="window.editProductById(${p.id})"><i class="fas fa-edit"></i></button>
+                                <button class="btn-danger" style="padding:5px 10px;" onclick="window.deleteProductById(${p.id})"><i class="fas fa-trash"></i></button>
+                                <button class="btn-success" style="padding:5px 10px;" onclick="window.printBarcodeFn('${escapeHtml(p.barcode || '')}','${escapeHtml(p.name)}',${p.price})"><i class="fas fa-print"></i></button>
+                            </div>
+                        </tr>`;
+                }
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+            }
+            
+            window.editProductById = async function(id) {
+                const product = allProducts.find(p => p.id == id);
+                if (!product) return;
+                openEditModal(product);
+            };
+            
+            window.deleteProductById = async function(id) {
+                if (!confirm('Delete this product permanently?')) return;
+                await supabase.from('stock_history').delete().eq('product_id', id);
+                await supabase.from('order_items').delete().eq('product_id', id);
+                const { error } = await supabase.from('products').delete().eq('id', id);
+                if (error) showAlert('Delete failed: ' + error.message, 'error');
+                else { showAlert('Product deleted', 'success'); loadProducts(); }
+            };
+            
+            window.printBarcodeFn = function(barcode, name, price) {
+                if (!barcode) { showAlert('No barcode to print', 'error'); return; }
+                const pw = window.open('', '_blank');
+                pw.document.write(`
+                    <html>
+                    <head><title>Barcode - ${name}</title>
+                    <style>body{font-family:monospace;text-align:center;padding:20px}.label{border:1px solid #000;padding:20px;margin:20px auto;width:300px;background:white;border-radius:10px}.product-name{font-size:14px;font-weight:bold;margin-bottom:10px}.price{font-size:12px;color:#8B4513;margin-top:10px}svg{margin:10px 0}</style>
+                    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>
+                    </head>
+                    <body><div class="label"><div class="product-name">${escapeHtml(name)}</div><svg id="barcodeSvg"></svg><div class="price">₹${price}</div></div>
+                    <script>JsBarcode("#barcodeSvg", "${barcode}", { format:"CODE128", width:2, height:50, displayValue:true, fontSize:12, margin:10 });<\/script>
+                    </body></html>
+                `);
+                pw.document.close();
+                pw.onload = () => pw.print();
+            };
+            
+            function openEditModal(product) {
+                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Product';
+                document.getElementById('productId').value = product.id;
+                document.getElementById('productName').value = product.name;
+                document.getElementById('productBrand').value = product.brand || '';
+                document.getElementById('productCategory').value = product.category_id || '';
+                document.getElementById('productPrice').value = product.price;
+                document.getElementById('productCostPrice').value = product.cost_price || 0;
+                document.getElementById('productStock').value = product.stock_quantity || 0;
+                document.getElementById('productMinStock').value = product.min_stock_level || 5;
+                document.getElementById('productBarcode').value = product.barcode || '';
+                document.getElementById('productExpiry').value = product.expiry_date || '';
+                document.getElementById('productBatch').value = product.batch_number || '';
+                document.getElementById('productImageUrl').value = product.image_url || '';
+                document.getElementById('productImageManual').value = product.image_url || '';
+                document.getElementById('productDescription').value = product.description || '';
+                document.getElementById('productActive').checked = product.is_active === true;
+                document.getElementById('imagePreview').innerHTML = product.image_url ? `<img src="${product.image_url}" class="image-preview">` : '';
+                document.getElementById('modalBarcodeInput').value = product.barcode || '';
+                document.getElementById('productModal').classList.add('active');
+            }
+            
+            function openAddNewModal(prefilledBarcode = '') {
+                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus"></i> Add Product';
+                document.getElementById('productForm').reset();
+                document.getElementById('productId').value = '';
+                document.getElementById('productActive').checked = true;
+                document.getElementById('imagePreview').innerHTML = '';
+                document.getElementById('productImageUrl').value = '';
+                document.getElementById('productImageManual').value = '';
+                document.getElementById('productBarcode').value = prefilledBarcode;
+                document.getElementById('modalBarcodeInput').value = prefilledBarcode;
+                document.getElementById('productModal').classList.add('active');
+            }
+            
+            async function uploadImage(file) {
+                const fileName = `product_${Date.now()}_${file.name}`;
+                const { data, error } = await supabase.storage.from('product-images').upload(fileName, file);
+                if (error) return null;
+                const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+                return urlData.publicUrl;
+            }
+            
+            // ========== BARCODE/QR SEARCH WITH "ADD NEW" ==========
+            async function searchBarcodeAndShowResult(identifier) {
+                if (!identifier) return;
+                document.getElementById('barcodeSearchInput').value = identifier;
+                const product = findProductByIdentifier(identifier);
+                const resultDiv = document.getElementById('barcodeSearchResult');
+                
+                if (product) {
+                    resultDiv.innerHTML = `
+                        <div style="background:#e8f5e9; border-left:4px solid #2e7d32; padding:12px 15px; border-radius:12px; margin-bottom:15px;">
+                            <strong><i class="fas fa-check-circle"></i> Product Found!</strong><br>
+                            ${escapeHtml(product.name)} | ₹${product.price} | Stock: ${product.stock_quantity}
+                            <button class="btn-primary" style="margin-left:15px; padding:5px 12px;" onclick="window.editProductById(${product.id})">Edit Product</button>
+                        </div>
+                    `;
+                    currentBarcodeFilter = product.barcode;
+                    applyFiltersAndRender();
+                    showAlert(`Product found: ${product.name}`, 'success');
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="background:#fff3e0; border-left:4px solid #FF6B35; padding:15px; border-radius:12px; margin-bottom:15px; text-align:center;">
+                            <i class="fas fa-barcode" style="font-size:2rem; color:#FF6B35;"></i>
+                            <p style="margin:10px 0;"><strong>No product found with identifier: ${escapeHtml(identifier)}</strong></p>
+                            <button class="add-new-btn" id="addNewFromBarcodeBtn"><i class="fas fa-plus"></i> Add New Product with this Barcode/QR</button>
+                        </div>
+                    `;
+                    document.getElementById('addNewFromBarcodeBtn').onclick = () => {
+                        openAddNewModal(identifier);
+                        resultDiv.innerHTML = '';
+                        document.getElementById('barcodeSearchInput').value = '';
+                    };
+                    currentBarcodeFilter = '';
+                    applyFiltersAndRender();
+                }
+            }
+            
+            // ========== IMPROVED CAMERA SCANNING (requestAnimationFrame) ==========
+            async function startCameraScan(callback) {
+                if (scanningActive) return;
+                currentScanCallback = callback;
+                try {
+                    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    const video = document.getElementById('video');
+                    video.srcObject = videoStream;
+                    await video.play();
+                    document.getElementById('cameraModal').classList.add('active');
+                    scanningActive = true;
+                    scanDebounce = false;
+                    scanFrame();
+                } catch(e) { 
+                    showAlert('Camera access denied or error', 'error');
+                    console.error(e);
+                }
+            }
+            
+            async function scanFrame() {
+                if (!scanningActive) return;
+                const video = document.getElementById('video');
+                if (!video.videoWidth || !video.videoHeight) {
+                    animationId = requestAnimationFrame(scanFrame);
+                    return;
+                }
+                if (barcodeDetector && !scanDebounce) {
+                    try {
+                        const barcodes = await barcodeDetector.detect(video);
+                        if (barcodes && barcodes.length > 0) {
+                            const rawValue = barcodes[0].rawValue;
+                            scanDebounce = true;
+                            document.getElementById('scanStatus').innerHTML = `✅ Detected: ${rawValue}`;
+                            stopCameraScan();
+                            if (currentScanCallback) {
+                                currentScanCallback(rawValue);
+                            } else {
+                                searchBarcodeAndShowResult(rawValue);
+                            }
+                            return;
+                        } else {
+                            document.getElementById('scanStatus').innerHTML = 'Position barcode/QR in frame...';
+                        }
+                    } catch(e) {}
+                } else if (!barcodeDetector) {
+                    document.getElementById('scanStatus').innerHTML = 'Scanner API not supported. Use USB scanner.';
+                }
+                animationId = requestAnimationFrame(scanFrame);
+            }
+            
+            function stopCameraScan() {
+                scanningActive = false;
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+                if (videoStream) {
+                    videoStream.getTracks().forEach(t => t.stop());
+                    videoStream = null;
+                }
+                const video = document.getElementById('video');
+                if (video) video.srcObject = null;
+                document.getElementById('cameraModal').classList.remove('active');
+                currentScanCallback = null;
+                scanDebounce = false;
+            }
+            
+            // ========== EVENT HANDLERS ==========
+            document.getElementById('barcodeSearchBtn').onclick = () => {
+                const code = document.getElementById('barcodeSearchInput').value.trim();
+                if (!code) { showAlert('Enter barcode or scan QR', 'error'); return; }
+                searchBarcodeAndShowResult(code);
+            };
+            // Allow Enter key on barcode search input
+            document.getElementById('barcodeSearchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('barcodeSearchBtn').click();
+            });
+            
+            document.getElementById('clearBarcodeFilter').onclick = () => {
+                currentBarcodeFilter = '';
+                document.getElementById('barcodeSearchInput').value = '';
+                document.getElementById('barcodeSearchResult').innerHTML = '';
+                applyFiltersAndRender();
+                showAlert('Barcode filter cleared', 'info');
+            };
+            
+            document.getElementById('cameraScanBtn').onclick = () => {
+                startCameraScan((barcode) => searchBarcodeAndShowResult(barcode));
+            };
+            
+            document.getElementById('addProductBtn').onclick = () => openAddNewModal('');
+            document.getElementById('modalClose').onclick = () => document.getElementById('productModal').classList.remove('active');
+            document.getElementById('cameraModalClose').onclick = stopCameraScan;
+            document.getElementById('stopCameraBtn').onclick = stopCameraScan;
+            
+            // Camera inside modal: set barcode field
+            document.getElementById('modalCameraBtn').onclick = () => {
+                startCameraScan((barcode) => {
+                    document.getElementById('modalBarcodeInput').value = barcode;
+                    document.getElementById('productBarcode').value = barcode;
+                    showAlert(`Barcode/QR set: ${barcode}`, 'success');
+                });
+            };
+            
+            document.getElementById('modalSearchBarcodeBtn').onclick = async () => {
+                const code = document.getElementById('modalBarcodeInput').value.trim();
+                if (!code) return;
+                const product = findProductByIdentifier(code);
+                if (product) {
+                    openEditModal(product);
+                } else {
+                    document.getElementById('productBarcode').value = code;
+                    showAlert('Barcode set. Fill other details and save.', 'info');
+                }
+            };
+            
+            // Image upload
+            document.getElementById('imageUploadArea').onclick = () => document.getElementById('imageFile').click();
+            document.getElementById('imageFile').onchange = async (e) => {
+                if (e.target.files.length) {
+                    showAlert('Uploading image...', 'info');
+                    const url = await uploadImage(e.target.files[0]);
+                    if (url) {
+                        document.getElementById('productImageUrl').value = url;
+                        document.getElementById('productImageManual').value = url;
+                        document.getElementById('imagePreview').innerHTML = `<img src="${url}" class="image-preview">`;
+                        showAlert('Image uploaded!', 'success');
+                    } else showAlert('Upload failed', 'error');
+                }
+            };
+            
+            // Form submit
+            document.getElementById('productForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('productId').value;
+                let imgUrl = document.getElementById('productImageUrl').value;
+                if (!imgUrl) imgUrl = document.getElementById('productImageManual').value;
+                const data = {
+                    name: document.getElementById('productName').value,
+                    brand: document.getElementById('productBrand').value || null,
+                    category_id: parseInt(document.getElementById('productCategory').value),
+                    price: parseFloat(document.getElementById('productPrice').value),
+                    cost_price: parseFloat(document.getElementById('productCostPrice').value) || 0,
+                    stock_quantity: parseInt(document.getElementById('productStock').value) || 0,
+                    min_stock_level: parseInt(document.getElementById('productMinStock').value) || 5,
+                    barcode: document.getElementById('productBarcode').value || null,
+                    expiry_date: document.getElementById('productExpiry').value || null,
+                    batch_number: document.getElementById('productBatch').value || null,
+                    image_url: imgUrl || null,
+                    description: document.getElementById('productDescription').value || null,
+                    is_active: document.getElementById('productActive').checked
+                };
+                let result;
+                if (id) result = await supabase.from('products').update(data).eq('id', id);
+                else result = await supabase.from('products').insert(data);
+                if (result.error) showAlert('Save failed: ' + result.error.message, 'error');
+                else {
+                    showAlert(id ? 'Product updated!' : 'Product added!', 'success');
+                    document.getElementById('productModal').classList.remove('active');
+                    document.getElementById('barcodeSearchResult').innerHTML = '';
+                    loadProducts();
+                }
+            };
+            
+            // Filters
+            document.getElementById('searchBtn').onclick = () => {
+                currentSearchTerm = document.getElementById('searchInput').value;
+                applyFiltersAndRender();
+            };
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('searchBtn').click();
+            });
+            document.getElementById('categoryFilter').onchange = (e) => {
+                currentCategoryFilter = e.target.value;
+                applyFiltersAndRender();
+            };
+            document.getElementById('refreshBtn').onclick = () => {
+                currentSearchTerm = '';
+                currentCategoryFilter = 'all';
+                currentBarcodeFilter = '';
+                document.getElementById('searchInput').value = '';
+                document.getElementById('categoryFilter').value = 'all';
+                document.getElementById('barcodeSearchInput').value = '';
+                document.getElementById('barcodeSearchResult').innerHTML = '';
+                loadProducts();
+            };
+            document.getElementById('logoutBtn').onclick = () => { localStorage.removeItem('adminUser'); window.location.href = 'admin-login.html'; };
+            document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('active');
+            
+            async function init() {
+                if (!checkAuth()) return;
+                await loadCategories();
+                await loadProducts();
+            }
+            init();
+        })();
+    </script>
+</body>
+</html>
